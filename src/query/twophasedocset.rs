@@ -2,14 +2,12 @@ use crate::docset::{DocSet, SkipResult};
 use crate::DocId;
 
 struct TwoPhaseApproximation<TDocSet: DocSet> {
-   approximation: TDocSet,
+    approximation: TDocSet,
 }
 
 impl<TDocSet: DocSet> TwoPhaseApproximation<TDocSet> {
-    pub fn new(approximation: TDocSet) -> dyn TwoPhaseDocSet<TDocSet> {
-        TwoPhaseDoc::<TDocSet> {
-            approximation
-        }
+    pub fn new(approximation: TDocSet) -> TwoPhaseApproximation<TDocSet> {
+        TwoPhaseApproximation::<TDocSet> { approximation }
     }
 
     pub fn approximation(self) -> TDocSet {
@@ -17,7 +15,7 @@ impl<TDocSet: DocSet> TwoPhaseApproximation<TDocSet> {
     }
 }
 
-pub trait TwoPhaseDocSet {
+pub trait TwoPhaseDocSet: DocSet {
     // An estimate of the expected cost to determine that a single document `.matches()`.
     // Returns an expected cost in number of simple operations like addition, multiplication,
     // comparing two numbers and indexing an array.
@@ -47,5 +45,4 @@ impl<TDocSet: DocSet> DocSet for TwoPhaseApproximation<TDocSet> {
     fn size_hint(&self) -> u32 {
         self.approximation.size_hint()
     }
-
 }
