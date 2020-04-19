@@ -18,6 +18,7 @@ mod range_query;
 mod regex_query;
 mod reqopt_scorer;
 mod scorer;
+mod twophasedocset;
 mod term_query;
 mod union;
 mod weight;
