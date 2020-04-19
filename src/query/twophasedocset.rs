@@ -1,13 +1,12 @@
+use crate::docset::{DocSet, SkipResult, DocId};
 
-mistake
-
-struct TwoPhaseDocSet<TDocSet: DocSet> {
+struct TwoPhaseApproximation<TDocSet: DocSet> {
    approximation: TDocSet,
 }
 
-impl TwoPhaseDocSet<TDocSet: DocSet> {
-    pub fn new(approximation: TDocSet) -> TwoPhaseDocSet<TDocSet> {
-        TwoPhaseDoc<TDocSet> {
+impl TwoPhaseApproximation<TDocSet: DocSet> {
+    pub fn new(approximation: TDocSet) -> dyn TwoPhaseDocSet<TDocSet> {
+        TwoPhaseDoc::<TDocSet> {
             approximation
         }
     }
@@ -22,16 +21,16 @@ pub trait TwoPhaseDocSet {
     // Returns an expected cost in number of simple operations like addition, multiplication,
     // comparing two numbers and indexing an array.
     // The returned value must be positive.
-    pub fn match_cost() -> f32;
+    fn match_cost() -> f32;
 
     // Return whether the current valid doc in the approximating DocSet is on a match.
     // This should only be called when the DocSet is positioned, and at most once.
     // The approximating DocSet implements the first phase, this method implements the second phase.
-    pub fn matches(&mut self) -> bool;
+    fn matches(&mut self) -> bool;
 }
+                                               
 
-
-impl DocSet for TwoPhaseDocSet<TDocSet: DocSet> {
+impl DocSet for TwoPhaseApproximation<TDocSet: DocSet> {
     fn advance(&mut self) -> bool {
         self.approximation.advance()
     }
