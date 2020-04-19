@@ -1,17 +1,18 @@
-use crate::docset::{DocSet, SkipResult, DocId};
+use crate::docset::{DocSet, SkipResult};
+use crate::DocId;
 
 struct TwoPhaseApproximation<TDocSet: DocSet> {
    approximation: TDocSet,
 }
 
-impl TwoPhaseApproximation<TDocSet: DocSet> {
+impl<TDocSet: DocSet> TwoPhaseApproximation<TDocSet> {
     pub fn new(approximation: TDocSet) -> dyn TwoPhaseDocSet<TDocSet> {
         TwoPhaseDoc::<TDocSet> {
             approximation
         }
     }
 
-    pub fn approximation(self) -> DocSet {
+    pub fn approximation(self) -> TDocSet {
         self.approximation
     }
 }
@@ -28,9 +29,9 @@ pub trait TwoPhaseDocSet {
     // The approximating DocSet implements the first phase, this method implements the second phase.
     fn matches(&mut self) -> bool;
 }
-                                               
 
-impl DocSet for TwoPhaseApproximation<TDocSet: DocSet> {
+impl<TDocSet: DocSet> DocSet for TwoPhaseApproximation<TDocSet> {
+    // much like ConstScorer in scorer
     fn advance(&mut self) -> bool {
         self.approximation.advance()
     }
@@ -38,4 +39,13 @@ impl DocSet for TwoPhaseApproximation<TDocSet: DocSet> {
     fn skip_next(&mut self, target: DocId) -> SkipResult {
         self.approximation.skip_next(target)
     }
+
+    fn doc(&self) -> DocId {
+        self.approximation.doc()
+    }
+
+    fn size_hint(&self) -> u32 {
+        self.approximation.size_hint()
+    }
+
 }
