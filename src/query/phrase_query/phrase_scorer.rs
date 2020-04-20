@@ -3,6 +3,7 @@ use crate::fieldnorm::FieldNormReader;
 use crate::postings::Postings;
 use crate::query::bm25::BM25Weight;
 use crate::query::{Intersection, Scorer};
+use crate::query::twophasedocset::TwoPhaseDocSet;
 use crate::DocId;
 use std::cmp::Ordering;
 
@@ -260,6 +261,18 @@ impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
         self.intersection_docset.size_hint()
     }
 }
+
+
+impl<TPostings: Postings> TwoPhaseDocSet for PhraseScorer<TPostings> {
+    fn match_cost(self) -> f32 {
+        0f32
+    }
+
+    fn matches(&mut self) -> bool {
+        true
+    }
+}
+
 
 impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     fn score(&mut self) -> f32 {
