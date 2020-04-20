@@ -23,15 +23,15 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
         }
     }
 
-    // Return a TwoPhaseDocSet view of this Scorer, when available.
-    //
-    // Note that the approximation DocSet of the returned TwoPhaseDocSet
-    // must advance synchronously with the DocSet for this Scorer.
-    //
-    // Implementing this method is typically useful on a Scorer
-    // that has a high per-document overhead for confirming matches.
-    //
-    // This implementation returns None.
+    /// Return a TwoPhaseDocSet view of this Scorer, when available.
+    ///
+    /// Note that the approximation DocSet of the returned TwoPhaseDocSet
+    /// must advance synchronously with the DocSet for this Scorer.
+    ///
+    /// Implementing this method is typically useful on a Scorer
+    /// that has a high per-document overhead for confirming matches.
+    ///
+    /// This implementation returns None.
     fn two_phase_docset(&self) -> Option<&'static dyn TwoPhaseDocSet> {
         None
     }
