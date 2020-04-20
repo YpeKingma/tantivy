@@ -1,8 +1,8 @@
-use crate::docset::{DocSet, SkipResult};
 use crate::common::BitSet;
+use crate::docset::{DocSet, SkipResult};
 use crate::DocId;
 
-struct TwoPhaseApproximation<TDocSet: DocSet> {
+pub struct TwoPhaseApproximation<TDocSet: DocSet> {
     approximation: TDocSet,
 }
 

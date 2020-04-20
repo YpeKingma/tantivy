@@ -1,8 +1,8 @@
 use crate::common::BitSet;
 use crate::docset::{DocSet, SkipResult};
+use crate::query::twophasedocset::TwoPhaseDocSet;
 use crate::DocId;
 use crate::Score;
-use crate::query::twophasedocset::TwoPhaseDocSet;
 use downcast_rs::impl_downcast;
 use std::ops::DerefMut;
 

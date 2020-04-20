@@ -2,8 +2,8 @@ use crate::docset::{DocSet, SkipResult};
 use crate::fieldnorm::FieldNormReader;
 use crate::postings::Postings;
 use crate::query::bm25::BM25Weight;
+use crate::query::twophasedocset::{TwoPhaseApproximation, TwoPhaseDocSet};
 use crate::query::{Intersection, Scorer};
-use crate::query::twophasedocset::TwoPhaseDocSet;
 use crate::DocId;
 use std::cmp::Ordering;
 
@@ -262,10 +262,9 @@ impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     }
 }
 
-
 impl<TPostings: Postings> TwoPhaseDocSet for PhraseScorer<TPostings> {
     fn match_cost(self) -> f32 {
-        0f32
+        128f32 // Underestimated, too simple. See Lucene PhraseQuery TERM_POSNS_SEEK_OPS_PER_DOC
     }
 
     fn matches(&mut self) -> bool {
@@ -273,13 +272,17 @@ impl<TPostings: Postings> TwoPhaseDocSet for PhraseScorer<TPostings> {
     }
 }
 
-
 impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     fn score(&mut self) -> f32 {
         let doc = self.doc();
         let fieldnorm_id = self.fieldnorm_reader.fieldnorm_id(doc);
         self.similarity_weight
             .score(fieldnorm_id, self.phrase_count)
+    }
+
+    fn two_phase_docset(&self) -> Option<&'static dyn TwoPhaseDocSet> {
+        let approximation = self.intersection_docset;
+        Some(TwoPhaseApproximation::<dyn DocSet>::new(approximation))
     }
 }
 
