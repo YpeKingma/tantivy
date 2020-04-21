@@ -281,8 +281,8 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     }
 
     fn two_phase_docset(&self) -> Option<&'static dyn TwoPhaseDocSet> {
-        let approximation = self.intersection_docset;
-        Some(TwoPhaseApproximation::<dyn DocSet>::new(approximation))
+        let approximation = self.intersection_docset as &dyn DocSet;
+        Some(&TwoPhaseApproximation::new(approximation))
     }
 }
 

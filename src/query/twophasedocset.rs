@@ -2,16 +2,16 @@ use crate::common::BitSet;
 use crate::docset::{DocSet, SkipResult};
 use crate::DocId;
 
-pub struct TwoPhaseApproximation<TDocSet: DocSet> {
-    approximation: TDocSet,
+pub struct TwoPhaseApproximation {
+    approximation: &'static dyn DocSet,
 }
 
-impl<TDocSet: DocSet> TwoPhaseApproximation<TDocSet> {
-    pub fn new(approximation: TDocSet) -> TwoPhaseApproximation<TDocSet> {
-        TwoPhaseApproximation::<TDocSet> { approximation }
+impl TwoPhaseApproximation {
+    pub fn new(approximation: &dyn DocSet) -> TwoPhaseApproximation {
+        TwoPhaseApproximation { approximation }
     }
 
-    pub fn approximation(self) -> TDocSet {
+    pub fn approximation(self) -> dyn DocSet {
         self.approximation
     }
 }
@@ -30,7 +30,7 @@ pub trait TwoPhaseDocSet: DocSet {
     fn matches(&mut self) -> bool;
 }
 
-impl<TDocSet: DocSet> DocSet for TwoPhaseApproximation<TDocSet> {
+impl DocSet for TwoPhaseApproximation {
     // Much like ConstScorer in scorer. CHECKME: avoid this almost duplication?
     fn advance(&mut self) -> bool {
         self.approximation.advance()
