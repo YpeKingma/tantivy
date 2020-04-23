@@ -282,7 +282,7 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
 
     fn two_phase_docset(&self) -> Option<&'static dyn TwoPhaseDocSet> {
         let approximation: &dyn DocSet = &Box::new(self.intersection_docset);
-        Some(&TwoPhaseApproximation::new(approximation))
+        Some(&TwoPhaseApproximation::new(approximation)) // lacks TwoPhaseDocSet, Lucene has a java inline implementation
     }
 }
 

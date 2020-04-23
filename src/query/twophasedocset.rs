@@ -1,7 +1,6 @@
 use crate::common::BitSet;
 use crate::docset::{DocSet, SkipResult};
 use crate::DocId;
-use crate::query::intersection::Intersection;
 
 pub struct TwoPhaseApproximation {
     approximation: &'static dyn DocSet,
@@ -56,7 +55,4 @@ impl DocSet for TwoPhaseApproximation {
     fn append_to_bitset(&mut self, bitset: &mut BitSet) {
         self.approximation.append_to_bitset(bitset);
     }
-}
-
-impl<TPostings1: DocSet, TPostings2: DocSet> From<Box<dyn DocSet>> for Intersection<TPostings1, TPostings2> {
 }
