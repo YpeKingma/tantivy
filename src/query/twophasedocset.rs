@@ -7,11 +7,11 @@ pub struct TwoPhaseApproximation {
 }
 
 impl TwoPhaseApproximation {
-    pub fn new(approximation: &dyn DocSet) -> TwoPhaseApproximation {
+    pub fn new(approximation: &'static dyn DocSet) -> TwoPhaseApproximation {
         TwoPhaseApproximation { approximation }
     }
 
-    pub fn approximation(self) -> dyn DocSet {
+    pub fn approximation(self) -> &'static dyn DocSet {
         self.approximation
     }
 }
