@@ -280,11 +280,14 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
             .score(fieldnorm_id, self.phrase_count)
     }
 
-    fn two_phase_docset(&self) -> Option<&'static dyn TwoPhaseDocSet> {
-        let approximation: &dyn DocSet = &Box::new(self.intersection_docset);
-        Some(&TwoPhaseApproximation::new(approximation)) // lacks TwoPhaseDocSet, Lucene has a java inline implementation
+    fn two_phase_docset(&mut self) -> Option<&'static mut dyn TwoPhaseDocSet> {
+        let approximation: &mut dyn DocSet = &mut Box::new(&mut self.intersection_docset); // need mutable intersection_docset here
+        // Some(&TwoPhaseApproximation::new(approximation)) // lacks TwoPhaseDocSet, Lucene has a java inline implementation
+        None // check how to implement two phase scoring first.
     }
 }
+
+
 
 #[cfg(test)]
 mod tests {

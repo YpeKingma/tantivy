@@ -32,7 +32,7 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
     /// that has a high per-document overhead for confirming matches.
     ///
     /// This implementation returns None.
-    fn two_phase_docset(&self) -> Option<&'static dyn TwoPhaseDocSet> {
+    fn two_phase_docset(&mut self) -> Option<&'static mut dyn TwoPhaseDocSet> {
         None
     }
 }

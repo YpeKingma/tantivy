@@ -3,11 +3,11 @@ use crate::docset::{DocSet, SkipResult};
 use crate::DocId;
 
 pub struct TwoPhaseApproximation {
-    approximation: &'static dyn DocSet,
+    approximation: &'static mut dyn DocSet,
 }
 
 impl TwoPhaseApproximation {
-    pub fn new(approximation: &'static dyn DocSet) -> TwoPhaseApproximation {
+    pub fn new(approximation: &'static mut dyn DocSet) -> TwoPhaseApproximation {
         TwoPhaseApproximation { approximation }
     }
 
