@@ -227,8 +227,9 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
 
 impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     fn advance(&mut self) -> bool {
-        while self.intersection_docset.advance() { // two phase: 1st phase
-            if self.phrase_match() { // two phase: 2nd phase
+        // two phase: 2nd phase from here
+        while self.intersection_docset.advance() {
+            if self.phrase_match() {
                 return true;
             }
         }
@@ -238,8 +239,9 @@ impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     fn skip_next(&mut self, target: DocId) -> SkipResult {
         if self.intersection_docset.skip_next(target) == SkipResult::End {
             return SkipResult::End;
-        } // two phase: 1st phase up to here
-        if self.phrase_match() { // twophase: 2nd phase
+        }
+        // two phase: 2nd phase from here
+        if self.phrase_match() {
             if self.doc() == target {
                 return SkipResult::Reached;
             } else {
@@ -272,7 +274,6 @@ impl<TPostings: Postings> TwoPhaseDocSet for PhraseScorer<TPostings> {
     }
 }
 
-
 impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     fn score(&mut self) -> f32 {
         let doc = self.doc();
@@ -283,12 +284,10 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
 
     fn two_phase_docset(&mut self) -> Option<&'static mut dyn TwoPhaseDocSet> {
         let approximation: &mut dyn DocSet = &mut Box::new(&mut self.intersection_docset); // need mutable intersection_docset here
-        // Some(&TwoPhaseApproximation::new(approximation)) // lacks TwoPhaseDocSet, Lucene has a java inline implementation
+                                                                                           // Some(&TwoPhaseApproximation::new(approximation)) // lacks TwoPhaseDocSet, Lucene has a java inline implementation
         None // check how to implement two phase scoring first.
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
