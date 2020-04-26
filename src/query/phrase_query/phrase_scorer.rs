@@ -227,8 +227,8 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
 
 impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     fn advance(&mut self) -> bool {
-        while self.intersection_docset.advance() {
-            if self.phrase_match() {
+        while self.intersection_docset.advance() { // two phase: 1st phase
+            if self.phrase_match() { // two phase: 2nd phase
                 return true;
             }
         }
@@ -238,8 +238,8 @@ impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     fn skip_next(&mut self, target: DocId) -> SkipResult {
         if self.intersection_docset.skip_next(target) == SkipResult::End {
             return SkipResult::End;
-        }
-        if self.phrase_match() {
+        } // two phase: 1st phase up to here
+        if self.phrase_match() { // twophase: 2nd phase
             if self.doc() == target {
                 return SkipResult::Reached;
             } else {
@@ -271,6 +271,7 @@ impl<TPostings: Postings> TwoPhaseDocSet for PhraseScorer<TPostings> {
         true
     }
 }
+
 
 impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     fn score(&mut self) -> f32 {
