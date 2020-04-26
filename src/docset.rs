@@ -31,11 +31,11 @@ pub trait DocSet {
     /// or if the `DocSet` was entirely consumed without finding any value
     /// greater or equal to the `target`.
     ///
-    /// WARNING: Calling skip always advances the docset.
-    /// More specifically, if the docset is already positionned on the target
+    /// WARNING: Calling `.skip_next()` always advances the docset.
+    /// More specifically, if the docset is already positioned on the target
     /// skipping will advance to the next position and return SkipResult::Overstep.
     ///
-    /// If `.skip_next()` oversteps, then the docset must be positionned correctly
+    /// If `.skip_next()` oversteps, then the docset must be positioned correctly
     /// on an existing document. In other words, `.doc()` should return the first document
     /// greater than `DocId`.
     fn skip_next(&mut self, target: DocId) -> SkipResult {
@@ -107,7 +107,7 @@ pub trait DocSet {
         count
     }
 
-    /// Returns the count of documents, deleted or not.
+    /// Returns the count of matching documents, deleted or not.
     /// Calling this method consumes the `DocSet`.
     ///
     /// Of course, the result is an upper bound of the result
