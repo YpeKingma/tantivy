@@ -1,0 +1,1 @@
+both cell and master take 1m19 to run cargo test
