@@ -6,6 +6,7 @@ use crate::directory::ReadOnlySource;
 use crate::schema::Document;
 use crate::space_usage::StoreSpaceUsage;
 use crate::DocId;
+use std::cell::Cell;
 use std::cell::RefCell;
 use std::io;
 use std::mem::size_of;
@@ -15,7 +16,7 @@ use std::mem::size_of;
 pub struct StoreReader {
     data: ReadOnlySource,
     offset_index_source: ReadOnlySource,
-    current_block_offset: RefCell<usize>,
+    current_block_offset: Cell<usize>,
     current_block: RefCell<Vec<u8>>,
     max_doc: DocId,
 }
