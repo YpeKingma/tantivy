@@ -28,7 +28,7 @@ impl StoreReader {
         StoreReader {
             data: data_source,
             offset_index_source,
-            current_block_offset: RefCell::new(usize::max_value()),
+            current_block_offset: Cell::new(usize::max_value()),
             current_block: RefCell::new(Vec::new()),
             max_doc,
         }
@@ -57,12 +57,12 @@ impl StoreReader {
     }
 
     fn read_block(&self, block_offset: usize) -> io::Result<()> {
-        if block_offset != *self.current_block_offset.borrow() {
+        if block_offset != self.current_block_offset.get() {
             let mut current_block_mut = self.current_block.borrow_mut();
             current_block_mut.clear();
             let compressed_block = self.compressed_block(block_offset);
             decompress(compressed_block, &mut current_block_mut)?;
-            *self.current_block_offset.borrow_mut() = block_offset;
+            self.current_block_offset.set(block_offset);
         }
         Ok(())
     }
