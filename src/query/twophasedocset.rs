@@ -3,15 +3,15 @@ use crate::docset::{DocSet, SkipResult};
 use crate::DocId;
 
 pub struct TwoPhaseApproximation {
-    approximation: &'static mut dyn DocSet,
+    approximation: Box<dyn DocSet>,
 }
 
 impl TwoPhaseApproximation {
-    pub fn new(approximation: &'static mut dyn DocSet) -> TwoPhaseApproximation {
+    pub fn new(approximation: Box<dyn DocSet>) -> TwoPhaseApproximation {
         TwoPhaseApproximation { approximation }
     }
 
-    pub fn approximation(self) -> &'static dyn DocSet {
+    pub fn approximation(self) -> Box<dyn DocSet> {
         self.approximation
     }
 }

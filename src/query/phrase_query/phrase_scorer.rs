@@ -2,7 +2,7 @@ use crate::docset::{DocSet, SkipResult};
 use crate::fieldnorm::FieldNormReader;
 use crate::postings::Postings;
 use crate::query::bm25::BM25Weight;
-use crate::query::twophasedocset::{TwoPhaseApproximation, TwoPhaseDocSet};
+use crate::query::twophasedocset::TwoPhaseDocSet;
 use crate::query::{Intersection, Scorer};
 use crate::DocId;
 use std::cmp::Ordering;
@@ -270,7 +270,7 @@ impl<TPostings: Postings> TwoPhaseDocSet for PhraseScorer<TPostings> {
     }
 
     fn matches(&mut self) -> bool {
-        true
+        true // FIXME
     }
 }
 
@@ -282,10 +282,8 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
             .score(fieldnorm_id, self.phrase_count)
     }
 
-    fn two_phase_docset(&mut self) -> Option<&'static mut dyn TwoPhaseDocSet> {
-        let approximation: &mut dyn DocSet = &mut Box::new(&mut self.intersection_docset); // need mutable intersection_docset here
-                                                                                           // Some(&TwoPhaseApproximation::new(approximation)) // lacks TwoPhaseDocSet, Lucene has a java inline implementation
-        None // check how to implement two phase scoring first.
+    fn two_phase_docset(self) -> Option<Box<dyn TwoPhaseDocSet>> {
+        Some(Box::new(self))
     }
 }
 
