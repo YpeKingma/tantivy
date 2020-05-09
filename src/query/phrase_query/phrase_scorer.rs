@@ -227,8 +227,8 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
 
 impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     fn advance(&mut self) -> bool {
-        // two phase: 2nd phase from here
         while self.intersection_docset.advance() {
+            // two phase: 2nd phase from first time here
             if self.phrase_match() {
                 return true;
             }
