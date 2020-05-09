@@ -1,5 +1,6 @@
 use crate::docset::{DocSet, SkipResult};
 use crate::query::term_query::TermScorer;
+use crate::query::twophasedocset::TwoPhaseDocSet;
 use crate::query::EmptyScorer;
 use crate::query::Scorer;
 use crate::DocId;
@@ -223,6 +224,25 @@ where
             + self.right.score()
             + self.others.iter_mut().map(Scorer::score).sum::<Score>()
     }
+
+    fn two_phase_docset(self) -> Option<Box<dyn TwoPhaseDocSet>> {
+        // provide an InterSectionTwoPhaseDocSet when there is at least one TwoPhaseDocSet for the given Scorers
+        // See Lucene ConjunctionTwoPhaseIterator
+        None
+    }
+}
+
+struct IntersectionTwoPhaseDocSet {
+    twophase_docsets: Vec<Box<dyn TwoPhaseDocSet>>,
+    approximation: Box<dyn DocSet>,
+}
+
+impl TwoPhaseDocSet for IntersectionTwoPhaseDocSet {
+    // missing `match_cost`, `matches` in implementation
+}
+
+impl DocSet for IntersectionTwoPhaseDocSet {
+    // missing `advance`, `doc`, `size_hint` in implementation
 }
 
 #[cfg(test)]
