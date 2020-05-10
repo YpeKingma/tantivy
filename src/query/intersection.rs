@@ -214,10 +214,24 @@ impl<TDocSet: DocSet, TOtherDocSet: DocSet> DocSet for Intersection<TDocSet, TOt
     }
 }
 
+impl<TScorer, TOtherScorer> Intersection<TScorer, TOtherScorer>
+where
+    TScorer: Scorer + Sized,
+    TOtherScorer: Scorer + Sized,
+{
+    pub(crate) fn scorer_mut(&mut self, ord: usize) -> &mut dyn Scorer {
+        match ord {
+            0 => &mut self.left,
+            1 => &mut self.right,
+            n => &mut self.others[n - 2],
+        }
+    }
+}
+
 impl<TScorer, TOtherScorer> Scorer for Intersection<TScorer, TOtherScorer>
 where
-    TScorer: Scorer,
-    TOtherScorer: Scorer,
+    TScorer: Scorer + Sized,
+    TOtherScorer: Scorer + Sized,
 {
     fn score(&mut self) -> Score {
         self.left.score()
@@ -226,13 +240,19 @@ where
     }
 
     fn two_phase_docset(self) -> Option<Box<dyn TwoPhaseDocSet>> {
-        // provide an InterSectionTwoPhaseDocSet when there is at least one TwoPhaseDocSet for the given Scorers
-        // See Lucene ConjunctionTwoPhaseIterator
+        let sub_two_phase_docsets = Vec::new();
+        for ord in 0..self.num_docsets {
+            let sub_scorer = self.scorer_mut(ord);
+            if let Some(sub_two_phase_docset) = sub_scorer.two_phase_docset() {
+                sub_two_phase_docsets.push(sub_two_phase_docset);
+            }
+        }
         None
     }
 }
 
 struct IntersectionTwoPhaseDocSet {
+    // See Lucene ConjunctionTwoPhaseIterator
     twophase_docsets: Vec<Box<dyn TwoPhaseDocSet>>,
     approximation: Box<dyn DocSet>,
 }
