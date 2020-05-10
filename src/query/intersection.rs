@@ -247,7 +247,7 @@ where
                 sub_two_phase_docsets.push(sub_two_phase_docset);
             }
         }
-        None
+        None // or Some(IntersectionTwoPhaseDocSet) for non empty sub_two_phase_docsets
     }
 }
 
