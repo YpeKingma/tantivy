@@ -225,7 +225,8 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
     }
 }
 
-impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
+impl<TPostings: Postings> DocSet for &PhraseScorer<TPostings> {
+//impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     fn advance(&mut self) -> bool {
         while self.intersection_docset.advance() {
             // two phase: 2nd phase from first time here
@@ -274,7 +275,7 @@ impl<TPostings: Postings> TwoPhaseDocSet for &PhraseScorer<TPostings> {
     }
 }
 
-impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
+impl<TPostings: Postings> Scorer for &PhraseScorer<TPostings> {
     fn score(&mut self) -> f32 {
         let doc = self.doc();
         let fieldnorm_id = self.fieldnorm_reader.fieldnorm_id(doc);
