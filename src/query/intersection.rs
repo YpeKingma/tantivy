@@ -259,26 +259,26 @@ struct IntersectionTwoPhaseDocSet {
 
 impl TwoPhaseDocSet for IntersectionTwoPhaseDocSet {
     fn match_cost(self) -> f32 {
-        100f32 // FIXME
+        todo!() // 100f32
     }
 
     fn matches(&mut self) -> bool {
-        panic!("not yet implemented") // FIXME
+        todo!()
     }
 }
 
 impl DocSet for IntersectionTwoPhaseDocSet {
     // missing `advance`, `doc`, `size_hint` in implementation
     fn advance(&mut self) -> bool {
-        panic!("not yet implemented") // FIXME
+        todo!()
     }
 
     fn doc(&self) -> DocId {
-        self.approximation.doc()
+        todo!()
     }
 
     fn size_hint(&self) -> u32 {
-        panic!("not yet implemented") // FIXME
+        todo!()
     }
 }
 
