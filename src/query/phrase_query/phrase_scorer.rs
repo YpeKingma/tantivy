@@ -283,7 +283,8 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     }
 
     fn two_phase_docset(&self) -> Option<Box<dyn TwoPhaseDocSet>> {
-        Some(Box::new(self))
+        // Some(Box::new(self))
+        None
     }
 }
 
