@@ -265,6 +265,7 @@ impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
 }
 
 impl<TPostings: Postings> TwoPhaseDocSet for PhraseScorer<TPostings> {
+    // when impl for &PhraseScorer, the implementation of DocSet for &PhraseScorer is missing.
     fn match_cost(self) -> f32 {
         128f32 // Underestimated, too simple. See Lucene PhraseQuery TERM_POSNS_SEEK_OPS_PER_DOC
     }
@@ -282,8 +283,8 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
             .score(fieldnorm_id, self.phrase_count)
     }
 
-    fn two_phase_docset(&self) -> Option<Box<dyn TwoPhaseDocSet>> {
-        // Some(Box::new(self))
+    fn two_phase_docset(&mut self) -> Option<Box<dyn TwoPhaseDocSet>> {
+        // Some(Box::new(self)) // needs impl TwoPhaseDocSet for &PhraseScorer
         None
     }
 }

@@ -32,7 +32,7 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
     /// that has a high per-document overhead for confirming matches.
     ///
     /// This implementation returns None.
-    fn two_phase_docset(&self) -> Option<Box<dyn TwoPhaseDocSet>> {
+    fn two_phase_docset(&mut self) -> Option<Box<dyn TwoPhaseDocSet>> {
         None
     }
 }
@@ -47,6 +47,10 @@ impl Scorer for Box<dyn Scorer> {
     fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
         let scorer = self.deref_mut();
         scorer.for_each(callback);
+    }
+
+    fn two_phase_docset(&mut self) -> Option<Box<dyn TwoPhaseDocSet>> {
+        self.deref_mut().two_phase_docset()
     }
 }
 
