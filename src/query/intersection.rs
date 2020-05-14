@@ -240,7 +240,7 @@ where
     }
 
     fn two_phase_docset(&self) -> Option<Box<dyn TwoPhaseDocSet>> {
-        let sub_two_phase_docsets = Vec::new();
+        let mut sub_two_phase_docsets = Vec::new();
         for ord in 0..self.num_docsets {
             let sub_scorer = self.scorer_mut(ord);
             if let Some(sub_two_phase_docset) = sub_scorer.two_phase_docset() {
