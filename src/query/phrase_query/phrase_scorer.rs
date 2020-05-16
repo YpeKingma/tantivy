@@ -264,8 +264,35 @@ impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     }
 }
 
-impl<TPostings: Postings> TwoPhaseDocSet for PhraseScorer<TPostings> {
-    // when impl for &PhraseScorer, the implementation of DocSet for &PhraseScorer is missing.
+struct PhraseTwoPhaseDocSet<TPostings: Postings> {
+    phrase_scorer: Box<PhraseScorer<TPostings>>, // the approximation DocSet
+}
+
+impl<TPostings: Postings> PhraseTwoPhaseDocSet<TPostings> {
+    fn new(phrase_scorer: Box<PhraseScorer<TPostings>>) -> PhraseTwoPhaseDocSet<TPostings> {
+        PhraseTwoPhaseDocSet { phrase_scorer }
+    }
+}
+
+impl<TPostings: Postings> DocSet for PhraseTwoPhaseDocSet<TPostings> {
+    fn advance(&mut self) -> bool {
+        self.phrase_scorer.advance()
+    }
+
+    fn skip_next(&mut self, target: DocId) -> SkipResult {
+        self.phrase_scorer.skip_next(target)
+    }
+
+    fn doc(&self) -> DocId {
+        self.phrase_scorer.doc()
+    }
+
+    fn size_hint(&self) -> u32 {
+        self.phrase_scorer.size_hint()
+    }
+}
+
+impl<TPostings: Postings> TwoPhaseDocSet for PhraseTwoPhaseDocSet<TPostings> {
     fn match_cost(self) -> f32 {
         128f32 // Underestimated, too simple. See Lucene PhraseQuery TERM_POSNS_SEEK_OPS_PER_DOC
     }
@@ -284,8 +311,7 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     }
 
     fn two_phase_docset(&mut self) -> Option<Box<dyn TwoPhaseDocSet>> {
-        // Some(Box::new(self)) // needs impl TwoPhaseDocSet for &PhraseScorer
-        None
+        Some(Box::new(PhraseTwoPhaseDocSet::<TPostings>::new(Box::new(self))))
     }
 }
 

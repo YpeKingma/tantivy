@@ -1,20 +1,21 @@
-use crate::common::BitSet;
-use crate::docset::{DocSet, SkipResult};
-use crate::DocId;
+//use crate::common::BitSet;
+//use crate::docset::{DocSet, SkipResult};
+use crate::docset::DocSet;
+//use crate::DocId;
 
-pub struct TwoPhaseApproximation {
-    approximation: Box<dyn DocSet>,
-}
-
-impl TwoPhaseApproximation {
-    pub fn new(approximation: Box<dyn DocSet>) -> TwoPhaseApproximation {
-        TwoPhaseApproximation { approximation }
-    }
-
-    pub fn approximation(self) -> Box<dyn DocSet> {
-        self.approximation
-    }
-}
+//pub struct TwoPhaseApproximation {
+//    approximation: Box<dyn DocSet>,
+//}
+//
+//impl TwoPhaseApproximation {
+//    pub fn new(approximation: Box<dyn DocSet>) -> TwoPhaseApproximation {
+//        TwoPhaseApproximation { approximation }
+//    }
+//
+//    pub fn approximation(self) -> Box<dyn DocSet> {
+//        self.approximation
+//    }
+//}
 
 /// Set of documents possibly matching a query within a specific segment.
 pub trait TwoPhaseDocSet: DocSet {
@@ -30,29 +31,29 @@ pub trait TwoPhaseDocSet: DocSet {
     fn matches(&mut self) -> bool;
 }
 
-impl DocSet for TwoPhaseApproximation {
-    // Much like ConstScorer in scorer. CHECKME: avoid this almost duplication?
-    fn advance(&mut self) -> bool {
-        self.approximation.advance()
-    }
-
-    fn skip_next(&mut self, target: DocId) -> SkipResult {
-        self.approximation.skip_next(target)
-    }
-
-    fn doc(&self) -> DocId {
-        self.approximation.doc()
-    }
-
-    fn fill_buffer(&mut self, buffer: &mut [DocId]) -> usize {
-        self.approximation.fill_buffer(buffer)
-    }
-
-    fn size_hint(&self) -> u32 {
-        self.approximation.size_hint()
-    }
-
-    fn append_to_bitset(&mut self, bitset: &mut BitSet) {
-        self.approximation.append_to_bitset(bitset);
-    }
-}
+//impl DocSet for TwoPhaseApproximation {
+//    // Much like ConstScorer in scorer. CHECKME: avoid this almost duplication?
+//    fn advance(&mut self) -> bool {
+//        self.approximation.advance()
+//    }
+//
+//    fn skip_next(&mut self, target: DocId) -> SkipResult {
+//        self.approximation.skip_next(target)
+//    }
+//
+//    fn doc(&self) -> DocId {
+//        self.approximation.doc()
+//    }
+//
+//    fn fill_buffer(&mut self, buffer: &mut [DocId]) -> usize {
+//        self.approximation.fill_buffer(buffer)
+//    }
+//
+//    fn size_hint(&self) -> u32 {
+//        self.approximation.size_hint()
+//    }
+//
+//    fn append_to_bitset(&mut self, bitset: &mut BitSet) {
+//        self.approximation.append_to_bitset(bitset);
+//    }
+//}
