@@ -95,7 +95,7 @@ pub trait DocSet {
         }
     }
 
-    /// Returns the number documents matching.
+    /// Returns the number documents in the set.
     /// Calling this method consumes the `DocSet`.
     fn count(&mut self, delete_bitset: &DeleteBitSet) -> u32 {
         let mut count = 0u32;
@@ -107,7 +107,7 @@ pub trait DocSet {
         count
     }
 
-    /// Returns the count of matching documents, deleted or not.
+    /// Returns the number of the documents in the set, deleted or not.
     /// Calling this method consumes the `DocSet`.
     ///
     /// Of course, the result is an upper bound of the result
