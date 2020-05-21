@@ -2,7 +2,7 @@ use crate::docset::{DocSet, SkipResult};
 use crate::fieldnorm::FieldNormReader;
 use crate::postings::Postings;
 use crate::query::bm25::BM25Weight;
-use crate::query::twophasedocset::TwoPhaseDocSet;
+use crate::query::twophasedocset::TwoPhase;
 use crate::query::{Intersection, Scorer};
 use crate::DocId;
 use std::cmp::Ordering;
@@ -269,8 +269,10 @@ struct PhraseTwoPhaseDocSet<TPostings: Postings> {
 }
 
 impl<TPostings: Postings> PhraseTwoPhaseDocSet<TPostings> {
-    fn new(phrase_scorer: Box<PhraseScorer<TPostings>>) -> PhraseTwoPhaseDocSet<TPostings> {
-        PhraseTwoPhaseDocSet { phrase_scorer }
+    fn new(phrase_scorer: PhraseScorer<TPostings>) -> PhraseTwoPhaseDocSet<TPostings> {
+        PhraseTwoPhaseDocSet {
+            phrase_scorer: Box::new(phrase_scorer),
+        }
     }
 }
 
@@ -292,7 +294,7 @@ impl<TPostings: Postings> DocSet for PhraseTwoPhaseDocSet<TPostings> {
     }
 }
 
-impl<TPostings: Postings> TwoPhaseDocSet for PhraseTwoPhaseDocSet<TPostings> {
+impl<TPostings: Postings> TwoPhase for PhraseTwoPhaseDocSet<TPostings> {
     fn match_cost(self) -> f32 {
         128f32 // Underestimated, too simple. See Lucene PhraseQuery TERM_POSNS_SEEK_OPS_PER_DOC
     }
@@ -310,8 +312,8 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
             .score(fieldnorm_id, self.phrase_count)
     }
 
-    fn two_phase_docset(&mut self) -> Option<Box<dyn TwoPhaseDocSet>> {
-        Some(Box::new(PhraseTwoPhaseDocSet::<TPostings>::new(Box::new(self))))
+    fn two_phase_docset(&mut self) -> Option<Box<dyn TwoPhase>> {
+        Some(Box::new(PhraseTwoPhaseDocSet::<TPostings>::new(*self)))
     }
 }
 

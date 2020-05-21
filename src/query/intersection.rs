@@ -1,6 +1,6 @@
 use crate::docset::{DocSet, SkipResult};
 use crate::query::term_query::TermScorer;
-use crate::query::twophasedocset::TwoPhaseDocSet;
+use crate::query::twophasedocset::TwoPhase;
 use crate::query::EmptyScorer;
 use crate::query::Scorer;
 use crate::DocId;
@@ -239,25 +239,28 @@ where
             + self.others.iter_mut().map(Scorer::score).sum::<Score>()
     }
 
-    fn two_phase_docset(&mut self) -> Option<Box<dyn TwoPhaseDocSet>> {
-        let mut sub_two_phase_docsets = Vec::new();
+    fn two_phase_docset(&mut self) -> Option<Box<dyn TwoPhase>> {
+        let mut sub_two_phases = Vec::new();
         for ord in 0..self.num_docsets {
             let sub_scorer = self.scorer_mut(ord);
-            if let Some(sub_two_phase_docset) = sub_scorer.two_phase_docset() {
-                sub_two_phase_docsets.push(sub_two_phase_docset);
+            if let Some(sub_two_phase) = sub_scorer.two_phase_docset() {
+                sub_two_phases.push(sub_two_phase);
             }
         }
-        None // or Some(IntersectionTwoPhaseDocSet) for non empty sub_two_phase_docsets
+        if !sub_two_phases.is_empty() {
+            todo!();
+        }
+        None // or Some(IntersectionTwoPhase) for non empty sub_two_phase_docsets
     }
 }
 
 struct IntersectionTwoPhaseDocSet {
     // See Lucene ConjunctionTwoPhaseIterator
-    twophase_docsets: Vec<Box<dyn TwoPhaseDocSet>>,
+    twophases: Vec<Box<dyn TwoPhase>>,
     approximation: Box<dyn DocSet>,
 }
 
-impl TwoPhaseDocSet for IntersectionTwoPhaseDocSet {
+impl TwoPhase for IntersectionTwoPhaseDocSet {
     fn match_cost(self) -> f32 {
         todo!() // 100f32
     }

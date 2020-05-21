@@ -1,6 +1,6 @@
 //use crate::common::BitSet;
 //use crate::docset::{DocSet, SkipResult};
-use crate::docset::DocSet;
+//use crate::docset::DocSet;
 //use crate::DocId;
 
 //pub struct TwoPhaseApproximation {
@@ -18,7 +18,7 @@ use crate::docset::DocSet;
 //}
 
 /// Set of documents possibly matching a query within a specific segment.
-pub trait TwoPhaseDocSet: DocSet {
+pub trait TwoPhase {
     /// An estimate of the expected cost to determine that a single document `.matches()`.
     /// Returns an expected cost in number of simple operations like addition, multiplication,
     /// comparing two numbers and indexing an array.
