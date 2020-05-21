@@ -2,7 +2,7 @@ use crate::docset::{DocSet, SkipResult};
 use crate::fieldnorm::FieldNormReader;
 use crate::postings::Postings;
 use crate::query::bm25::BM25Weight;
-use crate::query::twophasedocset::TwoPhase;
+use crate::query::twophase::TwoPhase;
 use crate::query::{Intersection, Scorer};
 use crate::DocId;
 use std::cmp::Ordering;

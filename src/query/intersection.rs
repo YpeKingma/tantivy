@@ -1,6 +1,6 @@
 use crate::docset::{DocSet, SkipResult};
 use crate::query::term_query::TermScorer;
-use crate::query::twophasedocset::TwoPhase;
+use crate::query::twophase::TwoPhase;
 use crate::query::EmptyScorer;
 use crate::query::Scorer;
 use crate::DocId;

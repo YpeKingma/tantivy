@@ -1,6 +1,6 @@
 use crate::common::BitSet;
 use crate::docset::{DocSet, SkipResult};
-use crate::query::twophasedocset::TwoPhase;
+use crate::query::twophase::TwoPhase;
 use crate::DocId;
 use crate::Score;
 use downcast_rs::impl_downcast;
