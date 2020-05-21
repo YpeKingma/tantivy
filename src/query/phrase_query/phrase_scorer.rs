@@ -226,33 +226,13 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
 }
 
 impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
+    // this is the approximating DocSet because TwoPhase is also implemented.
     fn advance(&mut self) -> bool {
-        while self.intersection_docset.advance() {
-            // two phase: 2nd phase from first time here
-            if self.phrase_match() {
-                return true;
-            }
-        }
-        false
+        self.intersection_docset.advance()
     }
 
     fn skip_next(&mut self, target: DocId) -> SkipResult {
-        if self.intersection_docset.skip_next(target) == SkipResult::End {
-            return SkipResult::End;
-        }
-        // two phase: 2nd phase from here
-        if self.phrase_match() {
-            if self.doc() == target {
-                return SkipResult::Reached;
-            } else {
-                return SkipResult::OverStep;
-            }
-        }
-        if self.advance() {
-            SkipResult::OverStep
-        } else {
-            SkipResult::End
-        }
+        self.intersection_docset.skip_next(target)
     }
 
     fn doc(&self) -> DocId {
@@ -264,43 +244,25 @@ impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     }
 }
 
-struct PhraseTwoPhaseDocSet<TPostings: Postings> {
-    phrase_scorer: Box<PhraseScorer<TPostings>>, // the approximation DocSet
+struct PhraseTwoPhase<TPostings: Postings> {
+    phrase_scorer: Box<PhraseScorer<TPostings>>,
 }
 
-impl<TPostings: Postings> PhraseTwoPhaseDocSet<TPostings> {
-    fn new(phrase_scorer: PhraseScorer<TPostings>) -> PhraseTwoPhaseDocSet<TPostings> {
-        PhraseTwoPhaseDocSet {
+impl<TPostings: Postings> PhraseTwoPhase<TPostings> {
+    fn new(phrase_scorer: PhraseScorer<TPostings>) -> PhraseTwoPhase<TPostings> {
+        PhraseTwoPhase {
             phrase_scorer: Box::new(phrase_scorer),
         }
     }
 }
 
-impl<TPostings: Postings> DocSet for PhraseTwoPhaseDocSet<TPostings> {
-    fn advance(&mut self) -> bool {
-        self.phrase_scorer.advance()
-    }
-
-    fn skip_next(&mut self, target: DocId) -> SkipResult {
-        self.phrase_scorer.skip_next(target)
-    }
-
-    fn doc(&self) -> DocId {
-        self.phrase_scorer.doc()
-    }
-
-    fn size_hint(&self) -> u32 {
-        self.phrase_scorer.size_hint()
-    }
-}
-
-impl<TPostings: Postings> TwoPhase for PhraseTwoPhaseDocSet<TPostings> {
+impl<TPostings: Postings> TwoPhase for PhraseTwoPhase<TPostings> {
     fn match_cost(self) -> f32 {
         128f32 // Underestimated, too simple. See Lucene PhraseQuery TERM_POSNS_SEEK_OPS_PER_DOC
     }
 
     fn matches(&mut self) -> bool {
-        true // FIXME
+        self.phrase_scorer.phrase_match()
     }
 }
 
@@ -313,7 +275,7 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     }
 
     fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
-        Some(Box::new(PhraseTwoPhaseDocSet::<TPostings>::new(*self)))
+        Some(Box::new(PhraseTwoPhase::<TPostings>::new(*self)))
     }
 }
 
