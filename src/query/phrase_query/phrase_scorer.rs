@@ -312,7 +312,7 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
             .score(fieldnorm_id, self.phrase_count)
     }
 
-    fn two_phase_docset(&mut self) -> Option<Box<dyn TwoPhase>> {
+    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
         Some(Box::new(PhraseTwoPhaseDocSet::<TPostings>::new(*self)))
     }
 }

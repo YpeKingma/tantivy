@@ -239,11 +239,11 @@ where
             + self.others.iter_mut().map(Scorer::score).sum::<Score>()
     }
 
-    fn two_phase_docset(&mut self) -> Option<Box<dyn TwoPhase>> {
+    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
         let mut sub_two_phases = Vec::new();
         for ord in 0..self.num_docsets {
             let sub_scorer = self.scorer_mut(ord);
-            if let Some(sub_two_phase) = sub_scorer.two_phase_docset() {
+            if let Some(sub_two_phase) = sub_scorer.two_phase() {
                 sub_two_phases.push(sub_two_phase);
             }
         }

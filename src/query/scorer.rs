@@ -16,23 +16,17 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
     fn score(&mut self) -> Score;
 
     /// Iterates through all of the document matched by the DocSet
-    /// `DocSet` and push the scored documents to the collector.
-    fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
-        while self.advance() {
-            callback(self.doc(), self.score());
-        }
-    }
-
-    /// Iterates through all of the document matched by the DocSet
-    /// `DocSet` that are also indicated as matching by the TwoPhaseDocSet
+    /// `DocSet`, that are also indicated as matching by the TwoPhase when available,
     /// and push the scored documents to the collector.
-    fn for_each_two_phase(
-        &mut self,
-        two_phase: &mut dyn TwoPhase,
-        callback: &mut dyn FnMut(DocId, Score),
-    ) {
-        while self.advance() {
-            if two_phase.matches() {
+    fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
+        if let Some(mut two_phase) = self.two_phase() {
+            while self.advance() {
+                if two_phase.matches() {
+                    callback(self.doc(), self.score());
+                }
+            }
+        } else {
+            while self.advance() {
                 callback(self.doc(), self.score());
             }
         }
@@ -47,7 +41,7 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
     /// that has a high per-document overhead for confirming matches.
     ///
     /// This implementation returns None.
-    fn two_phase_docset(&mut self) -> Option<Box<dyn TwoPhase>> {
+    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
         None
     }
 }
@@ -64,8 +58,8 @@ impl Scorer for Box<dyn Scorer> {
         scorer.for_each(callback);
     }
 
-    fn two_phase_docset(&mut self) -> Option<Box<dyn TwoPhase>> {
-        self.deref_mut().two_phase_docset()
+    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+        self.deref_mut().two_phase()
     }
 }
 
