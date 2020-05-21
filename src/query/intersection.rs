@@ -248,17 +248,35 @@ where
             }
         }
         if !sub_two_phases.is_empty() {
-            todo!();
+            Some(Box::new(IntersectionTwoPhaseDocSet::new(self, sub_two_phases)))
+        } else {
+            None
         }
-        None // or Some(IntersectionTwoPhase) for non empty sub_two_phase_docsets
     }
 }
 
 struct IntersectionTwoPhaseDocSet {
     // See Lucene ConjunctionTwoPhaseIterator
-    twophases: Vec<Box<dyn TwoPhase>>,
     approximation: Box<dyn DocSet>,
+    two_phases: Vec<Box<dyn TwoPhase>>,
 }
+
+
+impl IntersectionTwoPhaseDocSet
+
+{
+    fn new<TScorer: Scorer, TOtherScorer: Scorer>(
+        intersection: &mut Intersection<TScorer, TOtherScorer>,
+        sub_two_phases: Vec<Box<dyn TwoPhase>>,
+    ) -> IntersectionTwoPhaseDocSet
+    {
+        IntersectionTwoPhaseDocSet {
+            approximation: intersection,
+            two_phases: sub_two_phases,
+        }
+    }
+}
+
 
 impl TwoPhase for IntersectionTwoPhaseDocSet {
     fn match_cost(self) -> f32 {
