@@ -275,7 +275,8 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     }
 
     fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
-        Some(Box::new(PhraseTwoPhase::<TPostings>::new(*self)))
+        let ptp = PhraseTwoPhase::<TPostings>::new(*self); // FIXME: do not move out of self, or implement copy
+        Some(Box::new(ptp))
     }
 }
 
