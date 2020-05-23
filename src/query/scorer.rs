@@ -5,6 +5,8 @@ use crate::DocId;
 use crate::Score;
 use downcast_rs::impl_downcast;
 use std::ops::DerefMut;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 /// Scored set of documents matching a query within a specific segment.
 ///
@@ -32,16 +34,16 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
         }
     }
 
-    /// Return a TwoPhaseDocSet view of this Scorer, when available.
+    /// Return a TwoPhase for this Scorer, when available.
     ///
-    /// Note that the approximation DocSet of the returned TwoPhaseDocSet
-    /// must advance synchronously with the DocSet for this Scorer.
+    /// Note that the approximation DocSet for the TwoPhase is
+    /// the Scorer itself.
     ///
     /// Implementing this method is typically useful on a Scorer
     /// that has a high per-document overhead for confirming matches.
     ///
     /// This implementation returns None.
-    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+    fn two_phase(&mut self) -> Option<Rc<RefCell<dyn TwoPhase>>> {
         None
     }
 }
@@ -58,7 +60,7 @@ impl Scorer for Box<dyn Scorer> {
         scorer.for_each(callback);
     }
 
-    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+    fn two_phase(&mut self) -> Option<Rc<RefCell<dyn TwoPhase>>> {
         self.deref_mut().two_phase()
     }
 }
