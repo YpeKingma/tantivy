@@ -1,6 +1,5 @@
 use crate::docset::{DocSet, SkipResult};
 use crate::query::term_query::TermScorer;
-use crate::query::twophase::TwoPhase;
 use crate::query::EmptyScorer;
 use crate::query::Scorer;
 use crate::DocId;
@@ -214,92 +213,15 @@ impl<TDocSet: DocSet, TOtherDocSet: DocSet> DocSet for Intersection<TDocSet, TOt
     }
 }
 
-impl<TScorer, TOtherScorer> Intersection<TScorer, TOtherScorer>
-where
-    TScorer: Scorer + Sized,
-    TOtherScorer: Scorer + Sized,
-{
-    pub(crate) fn scorer_mut(&mut self, ord: usize) -> &mut dyn Scorer {
-        match ord {
-            0 => &mut self.left,
-            1 => &mut self.right,
-            n => &mut self.others[n - 2],
-        }
-    }
-}
-
 impl<TScorer, TOtherScorer> Scorer for Intersection<TScorer, TOtherScorer>
 where
-    TScorer: Scorer + Sized,
-    TOtherScorer: Scorer + Sized,
+    TScorer: Scorer,
+    TOtherScorer: Scorer,
 {
     fn score(&mut self) -> Score {
         self.left.score()
             + self.right.score()
             + self.others.iter_mut().map(Scorer::score).sum::<Score>()
-    }
-
-    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
-        let mut sub_two_phases = Vec::new();
-        for ord in 0..self.num_docsets {
-            let sub_scorer = self.scorer_mut(ord);
-            if let Some(sub_two_phase) = sub_scorer.two_phase() {
-                sub_two_phases.push(sub_two_phase);
-            }
-        }
-        if !sub_two_phases.is_empty() {
-            Some(Box::new(IntersectionTwoPhaseDocSet::new(self, sub_two_phases)))
-        } else {
-            None
-        }
-    }
-}
-
-struct IntersectionTwoPhaseDocSet {
-    // See Lucene ConjunctionTwoPhaseIterator
-    approximation: Box<dyn DocSet>,
-    two_phases: Vec<Box<dyn TwoPhase>>,
-}
-
-
-impl IntersectionTwoPhaseDocSet
-
-{
-    fn new<TScorer: Scorer, TOtherScorer: Scorer>(
-        intersection: &mut Intersection<TScorer, TOtherScorer>,
-        sub_two_phases: Vec<Box<dyn TwoPhase>>,
-    ) -> IntersectionTwoPhaseDocSet
-    {
-        IntersectionTwoPhaseDocSet {
-            approximation: intersection,
-            two_phases: sub_two_phases,
-        }
-    }
-}
-
-
-impl TwoPhase for IntersectionTwoPhaseDocSet {
-    fn match_cost(self) -> f32 {
-        todo!() // 100f32
-    }
-
-    fn matches(&mut self) -> bool {
-        todo!()
-    }
-}
-
-impl DocSet for IntersectionTwoPhaseDocSet {
-    // missing `advance`, `doc`, `size_hint` in implementation
-    fn advance(&mut self) -> bool {
-        todo!()
-    }
-
-    fn doc(&self) -> DocId {
-        todo!()
-    }
-
-    fn size_hint(&self) -> u32 {
-        todo!()
     }
 }
 
