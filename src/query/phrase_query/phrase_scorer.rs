@@ -246,21 +246,22 @@ impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     }
 }
 
-struct PhraseTwoPhase<TPostings: Postings> {
-    phrase_scorer: Box<PhraseScorer<TPostings>>,
+struct PhraseTwoPhase<'a, TPostings: Postings> {
+    phrase_scorer: &'a mut PhraseScorer<TPostings>,
 }
 
-impl<TPostings: Postings> PhraseTwoPhase<TPostings> {
-    fn new(phrase_scorer: PhraseScorer<TPostings>) -> PhraseTwoPhase<TPostings> {
+impl<TPostings: Postings> PhraseTwoPhase<'_, TPostings> {
+    fn new(phrase_scorer: &mut PhraseScorer<TPostings>) -> PhraseTwoPhase<TPostings> {
         PhraseTwoPhase {
-            phrase_scorer: Box::new(phrase_scorer),
+            phrase_scorer: phrase_scorer,
         }
     }
 }
 
-impl<TPostings: Postings> TwoPhase for PhraseTwoPhase<TPostings> {
+impl<TPostings: Postings> TwoPhase for PhraseTwoPhase<'static, TPostings> {
     fn match_cost(&self) -> f32 {
         128f32 // Underestimated, too simple. See Lucene PhraseQuery TERM_POSNS_SEEK_OPS_PER_DOC
+        // CHECKME: does this depend on the number of terms in the phrase?
     }
 
     fn matches(&mut self) -> bool {
@@ -277,8 +278,8 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     }
 
     fn two_phase(&mut self) -> Option<Rc<RefCell<dyn TwoPhase>>> {
-        //let ptp = PhraseTwoPhase::<TPostings>::new(*self); // FIXME: do not move out of self, or implement copy
-        //Some(Rc::new(RefCell::new(ptp)))
+        //let ptp = PhraseTwoPhase::<TPostings>::new(self); // FIXME: lifetime conflict
+        //Some(Rc::new(RefCell::new(ptp))) 
         None
     }
 }
