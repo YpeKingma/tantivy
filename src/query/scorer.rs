@@ -4,9 +4,9 @@ use crate::query::twophase::TwoPhase;
 use crate::DocId;
 use crate::Score;
 use downcast_rs::impl_downcast;
+use std::cell::RefCell;
 use std::ops::DerefMut;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 /// Scored set of documents matching a query within a specific segment.
 ///

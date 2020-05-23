@@ -5,9 +5,9 @@ use crate::query::bm25::BM25Weight;
 use crate::query::twophase::TwoPhase;
 use crate::query::{Intersection, Scorer};
 use crate::DocId;
+use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 struct PostingsWithOffset<TPostings> {
     offset: u32,
@@ -277,8 +277,9 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     }
 
     fn two_phase(&mut self) -> Option<Rc<RefCell<dyn TwoPhase>>> {
-        let ptp = PhraseTwoPhase::<TPostings>::new(*self); // FIXME: do not move out of self, or implement copy
-        Some(Rc::new(RefCell::new(ptp)))
+        //let ptp = PhraseTwoPhase::<TPostings>::new(*self); // FIXME: do not move out of self, or implement copy
+        //Some(Rc::new(RefCell::new(ptp)))
+        None
     }
 }
 
