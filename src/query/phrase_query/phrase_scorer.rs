@@ -261,7 +261,7 @@ impl<TPostings: Postings> PhraseTwoPhase<'_, TPostings> {
 impl<TPostings: Postings> TwoPhase for PhraseTwoPhase<'static, TPostings> {
     fn match_cost(&self) -> f32 {
         128f32 // Underestimated, too simple. See Lucene PhraseQuery TERM_POSNS_SEEK_OPS_PER_DOC
-        // CHECKME: does this depend on the number of terms in the phrase?
+               // CHECKME: does this depend on the number of terms in the phrase?
     }
 
     fn matches(&mut self) -> bool {
@@ -279,7 +279,7 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
 
     fn two_phase(&mut self) -> Option<Rc<RefCell<dyn TwoPhase>>> {
         //let ptp = PhraseTwoPhase::<TPostings>::new(self); // FIXME: lifetime conflict
-        //Some(Rc::new(RefCell::new(ptp))) 
+        //Some(Rc::new(RefCell::new(ptp)))
         None
     }
 }
