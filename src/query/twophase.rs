@@ -1,5 +1,4 @@
-use downcast_rs::impl_downcast;
-//use std::borrow::Borrow;
+//use downcast_rs::impl_downcast;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -17,7 +16,7 @@ pub trait TwoPhase: downcast_rs::Downcast + 'static {
     fn matches(&mut self) -> bool;
 }
 
-impl_downcast!(TwoPhase);
+//impl_downcast!(TwoPhase);
 
 impl TwoPhase for Rc<RefCell<dyn TwoPhase + 'static>> {
     fn match_cost(&self) -> f32 {
