@@ -1,4 +1,4 @@
-/// Set of documents possibly matching a query within a specific segment.
+/// Indicate a match for a DocSet with documents possibly matching a query within a specific segment.
 pub trait TwoPhase: downcast_rs::Downcast + 'static {
     /// An estimate of the expected cost to determine that a single document `.matches()`.
     /// Returns an expected cost in number of simple operations like addition, multiplication,
@@ -7,7 +7,7 @@ pub trait TwoPhase: downcast_rs::Downcast + 'static {
     fn match_cost(&self) -> f32;
 
     /// Return whether the current valid doc in the approximating DocSet is on a match.
-    /// This should only be called when the DocSet is positioned, and at most once.
+    /// This should only be called once, and when the approximating DocSet is positioned.
     /// The approximating DocSet implements the first phase, this method implements the second phase.
     fn matches(&mut self) -> bool;
 }
