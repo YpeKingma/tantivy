@@ -274,9 +274,9 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     }
 
     fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
-        let ptp = PhraseTwoPhase::<TPostings>::new(self); // FIXME: lifetime conflict
-        Some(Box::new(ptp))
-        //None
+        //let ptp = PhraseTwoPhase::<TPostings>::new(self); // FIXME: lifetime conflict
+        //Some(Box::new(ptp))
+        None
     }
 }
 
