@@ -250,9 +250,7 @@ struct PhraseTwoPhase<'a, TPostings: Postings> {
 
 impl<TPostings: Postings> PhraseTwoPhase<'_, TPostings> {
     fn new(phrase_scorer: &mut PhraseScorer<TPostings>) -> PhraseTwoPhase<TPostings> {
-        PhraseTwoPhase {
-            phrase_scorer: phrase_scorer,
-        }
+        PhraseTwoPhase { phrase_scorer }
     }
 }
 
