@@ -248,8 +248,8 @@ struct PhraseTwoPhase<'a, TPostings: Postings> {
     phrase_scorer: &'a mut PhraseScorer<TPostings>,
 }
 
-impl<TPostings: Postings> PhraseTwoPhase<'_, TPostings> {
-    fn new(phrase_scorer: &mut PhraseScorer<TPostings>) -> PhraseTwoPhase<TPostings> {
+impl<'a, TPostings: Postings> PhraseTwoPhase<'a, TPostings> {
+    fn new(phrase_scorer: &'a mut PhraseScorer<TPostings>) -> PhraseTwoPhase<TPostings> {
         PhraseTwoPhase {
             phrase_scorer: phrase_scorer,
         }
@@ -267,7 +267,7 @@ impl<TPostings: Postings> TwoPhase for PhraseTwoPhase<'static, TPostings> {
     }
 }
 
-impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
+impl<'a, TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     fn score(&mut self) -> f32 {
         let doc = self.doc();
         let fieldnorm_id = self.fieldnorm_reader.fieldnorm_id(doc);
@@ -275,10 +275,10 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
             .score(fieldnorm_id, self.phrase_count)
     }
 
-    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
-        let ptp = PhraseTwoPhase::<TPostings>::new(self); // FIXME: lifetime conflict
-        Some(Box::new(ptp))
-        //None
+    fn two_phase(&'a mut self) -> Option<Box<dyn TwoPhase>> {
+        let _ptp = PhraseTwoPhase::<'a, TPostings>::new(self); // FIXME: cannot infer lifetime for self
+        //Some(Box::new(ptp))
+        None
     }
 }
 
