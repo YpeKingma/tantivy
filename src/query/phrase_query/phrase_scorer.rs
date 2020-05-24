@@ -5,9 +5,7 @@ use crate::query::bm25::BM25Weight;
 use crate::query::twophase::TwoPhase;
 use crate::query::{Intersection, Scorer};
 use crate::DocId;
-use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::rc::Rc;
 
 struct PostingsWithOffset<TPostings> {
     offset: u32,
@@ -277,10 +275,10 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
             .score(fieldnorm_id, self.phrase_count)
     }
 
-    fn two_phase(&mut self) -> Option<Rc<RefCell<dyn TwoPhase>>> {
-        //let ptp = PhraseTwoPhase::<TPostings>::new(self); // FIXME: lifetime conflict
-        //Some(Rc::new(RefCell::new(ptp)))
-        None
+    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+        let ptp = PhraseTwoPhase::<TPostings>::new(self); // FIXME: lifetime conflict
+        Some(Box::new(ptp))
+        //None
     }
 }
 
