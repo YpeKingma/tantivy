@@ -1,6 +1,3 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 /// Set of documents possibly matching a query within a specific segment.
 pub trait TwoPhase: downcast_rs::Downcast + 'static {
     /// An estimate of the expected cost to determine that a single document `.matches()`.
@@ -13,16 +10,4 @@ pub trait TwoPhase: downcast_rs::Downcast + 'static {
     /// This should only be called when the DocSet is positioned, and at most once.
     /// The approximating DocSet implements the first phase, this method implements the second phase.
     fn matches(&mut self) -> bool;
-}
-
-impl TwoPhase for Rc<RefCell<dyn TwoPhase + 'static>> {
-    fn match_cost(&self) -> f32 {
-        let two_phase = &self.borrow();
-        two_phase.match_cost()
-    }
-
-    fn matches(&mut self) -> bool {
-        let two_phase = &mut self.borrow_mut();
-        two_phase.matches()
-    }
 }
