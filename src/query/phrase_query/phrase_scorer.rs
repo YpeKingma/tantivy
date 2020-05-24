@@ -2,6 +2,7 @@ use crate::docset::{DocSet, TERMINATED};
 use crate::fieldnorm::FieldNormReader;
 use crate::postings::Postings;
 use crate::query::bm25::BM25Weight;
+use crate::query::twophase::TwoPhase;
 use crate::query::{Intersection, Scorer};
 use crate::DocId;
 use std::cmp::Ordering;
@@ -229,13 +230,9 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
 }
 
 impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
+    // this is the approximating DocSet because TwoPhase is also implemented.
     fn advance(&mut self) -> DocId {
-        loop {
-            let doc = self.intersection_docset.advance();
-            if doc == TERMINATED || self.phrase_match() {
-                return doc;
-            }
-        }
+        self.intersection_docset.advance()
     }
 
     fn seek(&mut self, target: DocId) -> DocId {
@@ -255,12 +252,39 @@ impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     }
 }
 
+struct PhraseTwoPhase<'a, TPostings: Postings> {
+    phrase_scorer: &'a mut PhraseScorer<TPostings>,
+}
+
+impl<TPostings: Postings> PhraseTwoPhase<'_, TPostings> {
+    fn new(phrase_scorer: &mut PhraseScorer<TPostings>) -> PhraseTwoPhase<TPostings> {
+        PhraseTwoPhase { phrase_scorer }
+    }
+}
+
+impl<TPostings: Postings> TwoPhase for PhraseTwoPhase<'static, TPostings> {
+    fn match_cost(&self) -> f32 {
+        128f32 // Underestimated, too simple. See Lucene PhraseQuery TERM_POSNS_SEEK_OPS_PER_DOC
+               // CHECKME: does this depend on the number of terms in the phrase?
+    }
+
+    fn matches(&mut self) -> bool {
+        self.phrase_scorer.phrase_match()
+    }
+}
+
 impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     fn score(&mut self) -> f32 {
         let doc = self.doc();
         let fieldnorm_id = self.fieldnorm_reader.fieldnorm_id(doc);
         self.similarity_weight
             .score(fieldnorm_id, self.phrase_count)
+    }
+
+    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+        //let ptp = PhraseTwoPhase::<TPostings>::new(self); // FIXME: lifetime conflict
+        //Some(Box::new(ptp))
+        None
     }
 }
 

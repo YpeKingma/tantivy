@@ -1,4 +1,5 @@
 use crate::docset::{DocSet, TERMINATED};
+use crate::query::twophase::TwoPhase;
 use crate::DocId;
 use crate::Score;
 use downcast_rs::impl_downcast;
@@ -14,12 +15,23 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
     fn score(&mut self) -> Score;
 
     /// Iterates through all of the document matched by the DocSet
-    /// `DocSet` and push the scored documents to the collector.
+    /// `DocSet`, that are also indicated as matching by the TwoPhase when available,
+    /// and push the scored documents to the collector.
     fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
-        let mut doc = self.doc();
-        while doc != TERMINATED {
-            callback(doc, self.score());
-            doc = self.advance();
+        if let Some(mut two_phase) = self.two_phase() {
+            let mut doc = self.doc();
+            while doc != TERMINATED {
+                if two_phase.matches() {
+                    callback(doc, self.score());
+                }
+                doc = self.advance();
+            }
+        } else {
+            let mut doc = self.doc();
+            while doc != TERMINATED {
+                callback(doc, self.score());
+                doc = self.advance();
+            }
         }
     }
 
@@ -47,6 +59,19 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
             doc = self.advance();
         }
     }
+
+    /// Return a TwoPhase for this Scorer, when available.
+    ///
+    /// Note that the approximation DocSet for the TwoPhase is
+    /// the Scorer itself.
+    ///
+    /// Implementing this method is typically useful on a Scorer
+    /// that has a high per-document overhead for confirming matches.
+    ///
+    /// This implementation returns None.
+    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+        None
+    }
 }
 
 impl_downcast!(Scorer);
@@ -59,6 +84,10 @@ impl Scorer for Box<dyn Scorer> {
     fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
         let scorer = self.deref_mut();
         scorer.for_each(callback);
+    }
+
+    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+        self.deref_mut().two_phase()
     }
 }
 
