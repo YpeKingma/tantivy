@@ -1,18 +1,21 @@
 use super::Collector;
 use crate::collector::custom_score_top_collector::CustomScoreTopCollector;
-use crate::collector::top_collector::TopCollector;
 use crate::collector::top_collector::TopSegmentCollector;
+use crate::collector::top_collector::{ComparableDoc, TopCollector};
 use crate::collector::tweak_score_top_collector::TweakedScoreTopCollector;
 use crate::collector::{
     CustomScorer, CustomSegmentScorer, ScoreSegmentTweaker, ScoreTweaker, SegmentCollector,
 };
+use crate::docset::TERMINATED;
 use crate::fastfield::FastFieldReader;
+use crate::query::Scorer;
 use crate::schema::Field;
 use crate::DocAddress;
 use crate::DocId;
 use crate::Score;
 use crate::SegmentLocalId;
 use crate::SegmentReader;
+use std::collections::BinaryHeap;
 use std::fmt;
 
 /// The `TopDocs` collector keeps track of the top `K` documents
@@ -57,7 +60,11 @@ pub struct TopDocs(TopCollector<Score>);
 
 impl fmt::Debug for TopDocs {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "TopDocs({})", self.0.limit())
+        write!(
+            f,
+            "TopDocs(limit={}, offset={})",
+            self.0.limit, self.0.offset
+        )
     }
 }
 
@@ -99,6 +106,45 @@ impl TopDocs {
     /// The method panics if limit is 0
     pub fn with_limit(limit: usize) -> TopDocs {
         TopDocs(TopCollector::with_limit(limit))
+    }
+
+    /// Skip the first "offset" documents when collecting.
+    ///
+    /// This is equivalent to `OFFSET` in MySQL or PostgreSQL and `start` in
+    /// Lucene's TopDocsCollector.
+    ///
+    /// ```rust
+    /// use tantivy::collector::TopDocs;
+    /// use tantivy::query::QueryParser;
+    /// use tantivy::schema::{Schema, TEXT};
+    /// use tantivy::{doc, DocAddress, Index};
+    ///
+    /// let mut schema_builder = Schema::builder();
+    /// let title = schema_builder.add_text_field("title", TEXT);
+    /// let schema = schema_builder.build();
+    /// let index = Index::create_in_ram(schema);
+    ///
+    /// let mut index_writer = index.writer_with_num_threads(1, 3_000_000).unwrap();
+    /// index_writer.add_document(doc!(title => "The Name of the Wind"));
+    /// index_writer.add_document(doc!(title => "The Diary of Muadib"));
+    /// index_writer.add_document(doc!(title => "A Dairy Cow"));
+    /// index_writer.add_document(doc!(title => "The Diary of a Young Girl"));
+    /// index_writer.add_document(doc!(title => "The Diary of Lena Mukhina"));
+    /// assert!(index_writer.commit().is_ok());
+    ///
+    /// let reader = index.reader().unwrap();
+    /// let searcher = reader.searcher();
+    ///
+    /// let query_parser = QueryParser::for_index(&index, vec![title]);
+    /// let query = query_parser.parse_query("diary").unwrap();
+    /// let top_docs = searcher.search(&query, &TopDocs::with_limit(2).and_offset(1)).unwrap();
+    ///
+    /// assert_eq!(top_docs.len(), 2);
+    /// assert_eq!(&top_docs[0], &(0.5204813, DocAddress(0, 4)));
+    /// assert_eq!(&top_docs[1], &(0.4793185, DocAddress(0, 3)));
+    /// ```
+    pub fn and_offset(self, offset: usize) -> TopDocs {
+        TopDocs(self.0.and_offset(offset))
     }
 
     /// Set top-K to rank documents by a given fast field.
@@ -281,7 +327,7 @@ impl TopDocs {
         TScoreSegmentTweaker: ScoreSegmentTweaker<TScore> + 'static,
         TScoreTweaker: ScoreTweaker<TScore, Child = TScoreSegmentTweaker>,
     {
-        TweakedScoreTopCollector::new(score_tweaker, self.0.limit())
+        TweakedScoreTopCollector::new(score_tweaker, self.0.into_tscore())
     }
 
     /// Ranks the documents using a custom score.
@@ -395,7 +441,7 @@ impl TopDocs {
         TCustomSegmentScorer: CustomSegmentScorer<TScore> + 'static,
         TCustomScorer: CustomScorer<TScore, Child = TCustomSegmentScorer>,
     {
-        CustomScoreTopCollector::new(custom_score, self.0.limit())
+        CustomScoreTopCollector::new(custom_score, self.0.into_tscore())
     }
 }
 
@@ -423,6 +469,58 @@ impl Collector for TopDocs {
     ) -> crate::Result<Self::Fruit> {
         self.0.merge_fruits(child_fruits)
     }
+
+    fn collect_segment(
+        &self,
+        scorer: &mut dyn Scorer,
+        segment_ord: u32,
+        segment_reader: &SegmentReader,
+    ) -> crate::Result<<Self::Child as SegmentCollector>::Fruit> {
+        let mut heap: BinaryHeap<ComparableDoc<Score, DocId>> =
+            BinaryHeap::with_capacity(self.0.limit + self.0.offset);
+        // first we fill the heap with the first `limit` elements.
+        let mut doc = scorer.doc();
+        while doc != TERMINATED && heap.len() < (self.0.limit + self.0.offset) {
+            if !segment_reader.is_deleted(doc) {
+                let score = scorer.score();
+                heap.push(ComparableDoc {
+                    feature: score,
+                    doc,
+                });
+            }
+            doc = scorer.advance();
+        }
+
+        let threshold = heap.peek().map(|el| el.feature).unwrap_or(std::f32::MIN);
+
+        if let Some(delete_bitset) = segment_reader.delete_bitset() {
+            scorer.for_each_pruning(threshold, &mut |doc, score| {
+                if delete_bitset.is_alive(doc) {
+                    *heap.peek_mut().unwrap() = ComparableDoc {
+                        feature: score,
+                        doc,
+                    };
+                }
+                heap.peek().map(|el| el.feature).unwrap_or(std::f32::MIN)
+            });
+        } else {
+            scorer.for_each_pruning(threshold, &mut |doc, score| {
+                *heap.peek_mut().unwrap() = ComparableDoc {
+                    feature: score,
+                    doc,
+                };
+                heap.peek().map(|el| el.feature).unwrap_or(std::f32::MIN)
+            });
+        }
+
+        let fruit = heap
+            .into_sorted_vec()
+            .into_iter()
+            .map(|cid| (cid.feature, DocAddress(segment_ord, cid.doc)))
+            .collect();
+
+        Ok(fruit)
+    }
 }
 
 /// Segment Collector associated to `TopDocs`.
@@ -432,7 +530,7 @@ impl SegmentCollector for TopScoreSegmentCollector {
     type Fruit = Vec<(Score, DocAddress)>;
 
     fn collect(&mut self, doc: DocId, score: Score) {
-        self.0.collect(doc, score)
+        self.0.collect(doc, score);
     }
 
     fn harvest(self) -> Vec<(Score, DocAddress)> {
@@ -446,10 +544,10 @@ mod tests {
     use crate::collector::Collector;
     use crate::query::{AllQuery, Query, QueryParser};
     use crate::schema::{Field, Schema, FAST, STORED, TEXT};
-    use crate::DocAddress;
     use crate::Index;
     use crate::IndexWriter;
     use crate::Score;
+    use crate::{DocAddress, DocId, SegmentReader};
 
     fn make_index() -> Index {
         let mut schema_builder = Schema::builder();
@@ -490,6 +588,21 @@ mod tests {
     }
 
     #[test]
+    fn test_top_collector_not_at_capacity_with_offset() {
+        let index = make_index();
+        let field = index.schema().get_field("text").unwrap();
+        let query_parser = QueryParser::for_index(&index, vec![field]);
+        let text_query = query_parser.parse_query("droopy tax").unwrap();
+        let score_docs: Vec<(Score, DocAddress)> = index
+            .reader()
+            .unwrap()
+            .searcher()
+            .search(&text_query, &TopDocs::with_limit(4).and_offset(2))
+            .unwrap();
+        assert_eq!(score_docs, vec![(0.48527452, DocAddress(0, 0))]);
+    }
+
+    #[test]
     fn test_top_collector_at_capacity() {
         let index = make_index();
         let field = index.schema().get_field("text").unwrap();
@@ -506,6 +619,27 @@ mod tests {
             vec![
                 (0.81221175, DocAddress(0u32, 1)),
                 (0.5376842, DocAddress(0u32, 2)),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_top_collector_at_capacity_with_offset() {
+        let index = make_index();
+        let field = index.schema().get_field("text").unwrap();
+        let query_parser = QueryParser::for_index(&index, vec![field]);
+        let text_query = query_parser.parse_query("droopy tax").unwrap();
+        let score_docs: Vec<(Score, DocAddress)> = index
+            .reader()
+            .unwrap()
+            .searcher()
+            .search(&text_query, &TopDocs::with_limit(2).and_offset(1))
+            .unwrap();
+        assert_eq!(
+            score_docs,
+            vec![
+                (0.5376842, DocAddress(0u32, 2)),
+                (0.48527452, DocAddress(0, 0))
             ]
         );
     }
@@ -621,6 +755,50 @@ mod tests {
         } else {
             assert!(false);
         }
+    }
+
+    #[test]
+    fn test_tweak_score_top_collector_with_offset() {
+        let index = make_index();
+        let field = index.schema().get_field("text").unwrap();
+        let query_parser = QueryParser::for_index(&index, vec![field]);
+        let text_query = query_parser.parse_query("droopy tax").unwrap();
+        let collector = TopDocs::with_limit(2).and_offset(1).tweak_score(
+            move |_segment_reader: &SegmentReader| move |doc: DocId, _original_score: Score| doc,
+        );
+        let score_docs: Vec<(u32, DocAddress)> = index
+            .reader()
+            .unwrap()
+            .searcher()
+            .search(&text_query, &collector)
+            .unwrap();
+
+        assert_eq!(
+            score_docs,
+            vec![(1, DocAddress(0, 1)), (0, DocAddress(0, 0)),]
+        );
+    }
+
+    #[test]
+    fn test_custom_score_top_collector_with_offset() {
+        let index = make_index();
+        let field = index.schema().get_field("text").unwrap();
+        let query_parser = QueryParser::for_index(&index, vec![field]);
+        let text_query = query_parser.parse_query("droopy tax").unwrap();
+        let collector = TopDocs::with_limit(2)
+            .and_offset(1)
+            .custom_score(move |_segment_reader: &SegmentReader| move |doc: DocId| doc);
+        let score_docs: Vec<(u32, DocAddress)> = index
+            .reader()
+            .unwrap()
+            .searcher()
+            .search(&text_query, &collector)
+            .unwrap();
+
+        assert_eq!(
+            score_docs,
+            vec![(1, DocAddress(0, 1)), (0, DocAddress(0, 0)),]
+        );
     }
 
     fn index(

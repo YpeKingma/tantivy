@@ -1,4 +1,4 @@
-use crate::docset::{DocSet, SkipResult};
+use crate::docset::{DocSet, TERMINATED};
 use crate::fieldnorm::FieldNormReader;
 use crate::postings::Postings;
 use crate::query::bm25::BM25Weight;
@@ -26,12 +26,12 @@ impl<TPostings: Postings> PostingsWithOffset<TPostings> {
 }
 
 impl<TPostings: Postings> DocSet for PostingsWithOffset<TPostings> {
-    fn advance(&mut self) -> bool {
+    fn advance(&mut self) -> DocId {
         self.postings.advance()
     }
 
-    fn skip_next(&mut self, target: DocId) -> SkipResult {
-        self.postings.skip_next(target)
+    fn seek(&mut self, target: DocId) -> DocId {
+        self.postings.seek(target)
     }
 
     fn doc(&self) -> DocId {
@@ -150,7 +150,7 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
                 PostingsWithOffset::new(postings, (max_offset - offset) as u32)
             })
             .collect::<Vec<_>>();
-        PhraseScorer {
+        let mut scorer = PhraseScorer {
             intersection_docset: Intersection::new(postings_with_offsets),
             num_terms: num_docsets,
             left: Vec::with_capacity(100),
@@ -159,7 +159,11 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
             similarity_weight,
             fieldnorm_reader,
             score_needed,
+        };
+        if scorer.doc() != TERMINATED && !scorer.phrase_match() {
+            scorer.advance();
         }
+        scorer
     }
 
     pub fn phrase_count(&self) -> u32 {
@@ -227,12 +231,16 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
 
 impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     // this is the approximating DocSet because TwoPhase is also implemented.
-    fn advance(&mut self) -> bool {
+    fn advance(&mut self) -> DocId {
         self.intersection_docset.advance()
     }
 
-    fn skip_next(&mut self, target: DocId) -> SkipResult {
-        self.intersection_docset.skip_next(target)
+    fn seek(&mut self, target: DocId) -> DocId {
+        let doc = self.intersection_docset.seek(target);
+        if doc == TERMINATED || self.phrase_match() {
+            return doc;
+        }
+        self.advance()
     }
 
     fn doc(&self) -> DocId {

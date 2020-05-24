@@ -1,5 +1,4 @@
-use crate::common::BitSet;
-use crate::docset::{DocSet, SkipResult};
+use crate::docset::{DocSet, TERMINATED};
 use crate::query::twophase::TwoPhase;
 use crate::DocId;
 use crate::Score;
@@ -20,15 +19,44 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
     /// and push the scored documents to the collector.
     fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
         if let Some(mut two_phase) = self.two_phase() {
-            while self.advance() {
+            let mut doc = self.doc();
+            while doc != TERMINATED {
                 if two_phase.matches() {
-                    callback(self.doc(), self.score());
+                    callback(doc, self.score());
                 }
+                doc = self.advance();
             }
         } else {
-            while self.advance() {
-                callback(self.doc(), self.score());
+            let mut doc = self.doc();
+            while doc != TERMINATED {
+                callback(doc, self.score());
+                doc = self.advance();
             }
+        }
+    }
+
+    /// Calls `callback` with all of the `(doc, score)` for which score
+    /// is exceeding a given threshold.
+    ///
+    /// This method is useful for the TopDocs collector.
+    /// For all docsets, the blanket implementation has the benefit
+    /// of prefiltering (doc, score) pairs, avoiding the
+    /// virtual dispatch cost.
+    ///
+    /// More importantly, it makes it possible for scorers to implement
+    /// important optimization (e.g. BlockWAND for union).
+    fn for_each_pruning(
+        &mut self,
+        mut threshold: f32,
+        callback: &mut dyn FnMut(DocId, Score) -> Score,
+    ) {
+        let mut doc = self.doc();
+        while doc != TERMINATED {
+            let score = self.score();
+            if score > threshold {
+                threshold = callback(doc, score);
+            }
+            doc = self.advance();
         }
     }
 
@@ -88,12 +116,12 @@ impl<TDocSet: DocSet> From<TDocSet> for ConstScorer<TDocSet> {
 }
 
 impl<TDocSet: DocSet> DocSet for ConstScorer<TDocSet> {
-    fn advance(&mut self) -> bool {
+    fn advance(&mut self) -> DocId {
         self.docset.advance()
     }
 
-    fn skip_next(&mut self, target: DocId) -> SkipResult {
-        self.docset.skip_next(target)
+    fn seek(&mut self, target: DocId) -> DocId {
+        self.docset.seek(target)
     }
 
     fn fill_buffer(&mut self, buffer: &mut [DocId]) -> usize {
@@ -106,10 +134,6 @@ impl<TDocSet: DocSet> DocSet for ConstScorer<TDocSet> {
 
     fn size_hint(&self) -> u32 {
         self.docset.size_hint()
-    }
-
-    fn append_to_bitset(&mut self, bitset: &mut BitSet) {
-        self.docset.append_to_bitset(bitset);
     }
 }
 
