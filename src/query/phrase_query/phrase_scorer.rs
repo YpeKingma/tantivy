@@ -5,7 +5,9 @@ use crate::query::bm25::BM25Weight;
 use crate::query::twophase::TwoPhase;
 use crate::query::{Intersection, Scorer};
 use crate::DocId;
+use std::cell::RefCell;
 use std::cmp::Ordering;
+use std::rc::Rc;
 
 struct PostingsWithOffset<TPostings> {
     offset: u32,
@@ -229,6 +231,8 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
     }
 }
 
+struct RcRefCellPhraseScorer<TPostings: Postings>(Rc<RefCell<PhraseScorer<TPostings>>>);
+
 impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     // this is the approximating DocSet because TwoPhase is also implemented.
     fn advance(&mut self) -> DocId {
@@ -252,24 +256,43 @@ impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     }
 }
 
-struct PhraseTwoPhase<'a, TPostings: Postings> {
-    phrase_scorer: &'a mut PhraseScorer<TPostings>,
+impl<TPostings: Postings> DocSet for RcRefCellPhraseScorer<TPostings> {
+    // this is the approximating DocSet because TwoPhase is also implemented.
+    fn advance(&mut self) -> DocId {
+        self.0.borrow_mut().advance()
+    }
+
+    fn seek(&mut self, target: DocId) -> DocId {
+        self.0.borrow_mut().seek(target)
+    }
+
+    fn doc(&self) -> DocId {
+        self.0.borrow().doc()
+    }
+
+    fn size_hint(&self) -> u32 {
+        self.0.borrow().size_hint()
+    }
 }
 
-impl<TPostings: Postings> PhraseTwoPhase<'_, TPostings> {
-    fn new(phrase_scorer: &mut PhraseScorer<TPostings>) -> PhraseTwoPhase<TPostings> {
+struct PhraseTwoPhase<TPostings: Postings> {
+    phrase_scorer: Rc<RefCell<PhraseScorer<TPostings>>>,
+}
+
+impl<TPostings: Postings> PhraseTwoPhase<TPostings> {
+    fn new(phrase_scorer: Rc<RefCell<PhraseScorer<TPostings>>>) -> PhraseTwoPhase<TPostings> {
         PhraseTwoPhase { phrase_scorer }
     }
 }
 
-impl<TPostings: Postings> TwoPhase for PhraseTwoPhase<'static, TPostings> {
+impl<TPostings: Postings> TwoPhase for PhraseTwoPhase<TPostings> {
     fn match_cost(&self) -> f32 {
         128f32 // Underestimated, too simple. See Lucene PhraseQuery TERM_POSNS_SEEK_OPS_PER_DOC
                // CHECKME: does this depend on the number of terms in the phrase?
     }
 
     fn matches(&mut self) -> bool {
-        self.phrase_scorer.phrase_match()
+        self.phrase_scorer.borrow_mut().phrase_match()
     }
 }
 
@@ -280,11 +303,16 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
         self.similarity_weight
             .score(fieldnorm_id, self.phrase_count)
     }
+}
+
+impl<TPostings: Postings> Scorer for RcRefCellPhraseScorer<TPostings> {
+    fn score(&mut self) -> f32 {
+        self.0.borrow_mut().score()
+    }
 
     fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
-        //let ptp = PhraseTwoPhase::<TPostings>::new(self); // FIXME: lifetime conflict
-        //Some(Box::new(ptp))
-        None
+        let ptp = PhraseTwoPhase::<TPostings>::new(Rc::clone(&self.0));
+        Some(Box::new(ptp))
     }
 }
 
