@@ -5,6 +5,8 @@ use crate::query::bm25::BM25Weight;
 use crate::query::twophase::TwoPhase;
 use crate::query::{Intersection, Scorer};
 use crate::DocId;
+use crate::Score;
+
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::rc::Rc;
@@ -234,10 +236,14 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
 }
 
 pub struct RcRefCellPhraseScorer<TPostings: Postings>(Rc<RefCell<PhraseScorer<TPostings>>>);
-                                   
+
 impl<TPostings: Postings> RcRefCellPhraseScorer<TPostings> {
     pub fn new(phrase_scorer: PhraseScorer<TPostings>) -> Self {
         RcRefCellPhraseScorer(Rc::new(RefCell::new(phrase_scorer)))
+    }
+
+    pub fn phrase_count(&mut self) -> u32 {
+        self.0.borrow_mut().phrase_count()
     }
 }
 
@@ -312,14 +318,14 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
             .score(fieldnorm_id, self.phrase_count)
     }
 
-//    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
-//        let ptp = PhraseTwoPhase::<TPostings>::new(Rc::new(RefCell::new(self))); // fails, need struct PhraseScorer
-//        Some(Box::new(ptp))
-//    }
+    //    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+    //        let ptp = PhraseTwoPhase::<TPostings>::new(Rc::new(RefCell::new(self))); // fails, need struct PhraseScorer
+    //        Some(Box::new(ptp))
+    //    }
 }
 
 impl<TPostings: Postings> Scorer for RcRefCellPhraseScorer<TPostings> {
-    fn score(&mut self) -> f32 {
+    fn score(&mut self) -> Score {
         self.0.borrow_mut().score()
     }
 

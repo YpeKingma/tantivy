@@ -113,12 +113,13 @@ impl Weight for PhraseWeight {
 
 #[cfg(test)]
 mod tests {
+    use super::super::phrase_scorer::RcRefCellPhraseScorer;
     use super::super::tests::create_index;
     use crate::docset::TERMINATED;
     use crate::query::PhraseQuery;
     use crate::{DocSet, Term};
-    use super::super::phrase_scorer::RcRefCellPhraseScorer;
 
+    use crate::query::Scorer;
     use std::cell::RefCell;
     use std::rc::Rc;
 
@@ -133,13 +134,13 @@ mod tests {
             Term::from_field_text(text_field, "b"),
         ]);
         let phrase_weight = phrase_query.phrase_weight(&searcher, true).unwrap();
-        let mut phrase_scorer = phrase_weight
-            .phrase_scorer(searcher.segment_reader(0u32), 1.0f32)
-            .unwrap()
-            .unwrap();
-        let mut rcrfc_phrase_scorer = RcRefCellPhraseScorer::new(phrase_scorer);
-        let mut phrase_two_phase = rcrfc_phrase_scorer.two_phase().unwrap();
-        dbg!(phrase_two_phase);
+        let mut phrase_scorer = RcRefCellPhraseScorer::new(
+            phrase_weight
+                .phrase_scorer(searcher.segment_reader(0u32), 1.0f32)
+                .unwrap()
+                .unwrap(),
+        );
+        let mut phrase_two_phase = phrase_scorer.two_phase().unwrap();
         assert_eq!(phrase_scorer.doc(), 1);
         assert_eq!(phrase_two_phase.matches(), true);
         assert_eq!(phrase_scorer.phrase_count(), 2);
