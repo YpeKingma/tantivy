@@ -177,8 +177,6 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
     fn phrase_match(&mut self) -> bool {
         if self.score_needed {
             let count = self.compute_phrase_count();
-            dbg!(self.doc());
-            dbg!(count);
             self.phrase_count = count;
             count > 0u32
         } else {
@@ -306,7 +304,7 @@ impl<TPostings: Postings> TwoPhase for PhraseTwoPhase<TPostings> {
     }
 
     fn matches(&mut self) -> bool {
-        self.phrase_scorer.borrow_mut().phrase_exists()
+        self.phrase_scorer.borrow_mut().phrase_match()
     }
 }
 
@@ -317,11 +315,6 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
         self.similarity_weight
             .score(fieldnorm_id, self.phrase_count)
     }
-
-    //    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
-    //        let ptp = PhraseTwoPhase::<TPostings>::new(Rc::new(RefCell::new(self))); // fails, need struct PhraseScorer
-    //        Some(Box::new(ptp))
-    //    }
 }
 
 impl<TPostings: Postings> Scorer for RcRefCellPhraseScorer<TPostings> {
