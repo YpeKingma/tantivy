@@ -143,11 +143,11 @@ mod tests {
         let mut phrase_two_phase = phrase_scorer.two_phase().unwrap();
         assert_eq!(phrase_scorer.doc(), 1);
         assert!(phrase_two_phase.matches());
-        assert_eq!(phrase_scorer.phrase_count(), 2); // pass
+        assert_eq!(phrase_scorer.phrase_count(), 2);
         assert_eq!(phrase_scorer.advance(), 2);
         assert_eq!(phrase_scorer.doc(), 2);
         assert!(phrase_two_phase.matches());
-        assert_eq!(phrase_scorer.phrase_count(), 1); // fail
+        assert_eq!(phrase_scorer.phrase_count(), 1);
         assert_eq!(phrase_scorer.advance(), TERMINATED);
     }
 }
