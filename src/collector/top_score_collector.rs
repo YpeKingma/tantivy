@@ -162,7 +162,7 @@ impl TopDocs {
     /// #   let title = schema_builder.add_text_field("title", TEXT);
     /// #   let rating = schema_builder.add_u64_field("rating", FAST);
     /// #   let schema = schema_builder.build();
-    /// #  
+    /// #
     /// #   let index = Index::create_in_ram(schema);
     /// #   let mut index_writer = index.writer_with_num_threads(1, 3_000_000)?;
     /// #   index_writer.add_document(doc!(title => "The Name of the Wind", rating => 92u64));
@@ -197,7 +197,7 @@ impl TopDocs {
     ///     let top_docs_by_rating = TopDocs
     ///                 ::with_limit(10)
     ///                  .order_by_u64_field(sort_by_field);
-    ///     
+    ///
     ///     // ... and here are our documents. Note this is a simple vec.
     ///     // The `u64` in the pair is the value of our fast field for
     ///     // each documents.
@@ -207,7 +207,7 @@ impl TopDocs {
     ///     // query.
     ///     let resulting_docs: Vec<(u64, DocAddress)> =
     ///          searcher.search(query, &top_docs_by_rating)?;
-    ///     
+    ///
     ///     Ok(resulting_docs)
     /// }
     /// ```
@@ -243,7 +243,7 @@ impl TopDocs {
     ///
     /// In the following example will will tweak our ranking a bit by
     /// boosting popular products a notch.
-    ///  
+    ///
     /// In more serious application, this tweaking could involved running a
     /// learning-to-rank model over various features
     ///
@@ -374,7 +374,7 @@ impl TopDocs {
     /// #   let index = Index::create_in_ram(schema);
     /// #   let mut index_writer = index.writer_with_num_threads(1, 3_000_000)?;
     /// #   let product_name = index.schema().get_field("product_name").unwrap();
-    /// #   
+    /// #
     /// let popularity: Field = index.schema().get_field("popularity").unwrap();
     /// let boosted: Field = index.schema().get_field("boosted").unwrap();
     /// #   index_writer.add_document(doc!(boosted=>1u64, product_name => "The Diary of Muadib", popularity => 1u64));
@@ -408,7 +408,7 @@ impl TopDocs {
     ///                 segment_reader.fast_fields().u64(popularity).unwrap();
     ///             let boosted_reader =
     ///                 segment_reader.fast_fields().u64(boosted).unwrap();
-    ///    
+    ///
     ///             // We can now define our actual scoring function
     ///             move |doc: DocId| {
     ///                 let popularity: u64 = popularity_reader.get(doc);
@@ -478,41 +478,87 @@ impl Collector for TopDocs {
     ) -> crate::Result<<Self::Child as SegmentCollector>::Fruit> {
         let mut heap: BinaryHeap<ComparableDoc<Score, DocId>> =
             BinaryHeap::with_capacity(self.0.limit + self.0.offset);
-        // first we fill the heap with the first `limit` elements.
-        let mut doc = scorer.doc();
-        while doc != TERMINATED && heap.len() < (self.0.limit + self.0.offset) {
-            if !segment_reader.is_deleted(doc) {
-                let score = scorer.score();
-                heap.push(ComparableDoc {
-                    feature: score,
-                    doc,
+
+        if let Some(mut two_phase) = scorer.two_phase() {
+            // first we fill the heap with the first `limit` elements.
+            let mut doc = scorer.doc();
+            while doc != TERMINATED && heap.len() < (self.0.limit + self.0.offset) {
+                if !segment_reader.is_deleted(doc) {
+                    if two_phase.matches() {
+                        let score = scorer.score();
+                        heap.push(ComparableDoc {
+                            feature: score,
+                            doc,
+                        });
+                    }
+                }
+                doc = scorer.advance();
+            }
+
+            todo!(); // Add two_phase below
+
+            let threshold = heap.peek().map(|el| el.feature).unwrap_or(std::f32::MIN);
+
+            if let Some(delete_bitset) = segment_reader.delete_bitset() {
+                scorer.for_each_pruning(threshold, &mut |doc, score| {
+                    if delete_bitset.is_alive(doc) {
+                        if two_phase.matches() {
+                            *heap.peek_mut().unwrap() = ComparableDoc {
+                                feature: score,
+                                doc,
+                            };
+                        }
+                    }
+                    heap.peek().map(|el| el.feature).unwrap_or(std::f32::MIN)
+                });
+            } else {
+                scorer.for_each_pruning(threshold, &mut |doc, score| {
+                    if two_phase.matches() {
+                        *heap.peek_mut().unwrap() = ComparableDoc {
+                            feature: score,
+                            doc,
+                        };
+                    }
+                    heap.peek().map(|el| el.feature).unwrap_or(std::f32::MIN)
                 });
             }
-            doc = scorer.advance();
-        }
+        } else {
+            // no two_phase
+            // first we fill the heap with the first `limit` elements.
+            let mut doc = scorer.doc();
+            while doc != TERMINATED && heap.len() < (self.0.limit + self.0.offset) {
+                if !segment_reader.is_deleted(doc) {
+                    let score = scorer.score();
+                    heap.push(ComparableDoc {
+                        feature: score,
+                        doc,
+                    });
+                }
+                doc = scorer.advance();
+            }
 
-        let threshold = heap.peek().map(|el| el.feature).unwrap_or(std::f32::MIN);
+            let threshold = heap.peek().map(|el| el.feature).unwrap_or(std::f32::MIN);
 
-        if let Some(delete_bitset) = segment_reader.delete_bitset() {
-            scorer.for_each_pruning(threshold, &mut |doc, score| {
-                if delete_bitset.is_alive(doc) {
+            if let Some(delete_bitset) = segment_reader.delete_bitset() {
+                scorer.for_each_pruning(threshold, &mut |doc, score| {
+                    if delete_bitset.is_alive(doc) {
+                        *heap.peek_mut().unwrap() = ComparableDoc {
+                            feature: score,
+                            doc,
+                        };
+                    }
+                    heap.peek().map(|el| el.feature).unwrap_or(std::f32::MIN)
+                });
+            } else {
+                scorer.for_each_pruning(threshold, &mut |doc, score| {
                     *heap.peek_mut().unwrap() = ComparableDoc {
                         feature: score,
                         doc,
                     };
-                }
-                heap.peek().map(|el| el.feature).unwrap_or(std::f32::MIN)
-            });
-        } else {
-            scorer.for_each_pruning(threshold, &mut |doc, score| {
-                *heap.peek_mut().unwrap() = ComparableDoc {
-                    feature: score,
-                    doc,
-                };
-                heap.peek().map(|el| el.feature).unwrap_or(std::f32::MIN)
-            });
+                    heap.peek().map(|el| el.feature).unwrap_or(std::f32::MIN)
+                });
+            }
         }
-
         let fruit = heap
             .into_sorted_vec()
             .into_iter()
