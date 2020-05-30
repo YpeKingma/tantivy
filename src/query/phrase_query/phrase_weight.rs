@@ -117,6 +117,10 @@ mod tests {
     use crate::docset::TERMINATED;
     use crate::query::PhraseQuery;
     use crate::{DocSet, Term};
+    use super::super::phrase_scorer::RcRefCellPhraseScorer;
+
+    use std::cell::RefCell;
+    use std::rc::Rc;
 
     #[test]
     pub fn test_phrase_count() {
@@ -133,9 +137,14 @@ mod tests {
             .phrase_scorer(searcher.segment_reader(0u32), 1.0f32)
             .unwrap()
             .unwrap();
+        let mut rcrfc_phrase_scorer = RcRefCellPhraseScorer::new(phrase_scorer);
+        let mut phrase_two_phase = rcrfc_phrase_scorer.two_phase().unwrap();
+        dbg!(phrase_two_phase);
         assert_eq!(phrase_scorer.doc(), 1);
+        assert_eq!(phrase_two_phase.matches(), true);
         assert_eq!(phrase_scorer.phrase_count(), 2);
         assert_eq!(phrase_scorer.advance(), 2);
+        assert_eq!(phrase_two_phase.matches(), true);
         assert_eq!(phrase_scorer.doc(), 2);
         assert_eq!(phrase_scorer.phrase_count(), 1);
         assert_eq!(phrase_scorer.advance(), TERMINATED);
