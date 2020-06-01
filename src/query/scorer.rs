@@ -3,6 +3,7 @@ use crate::query::twophase::TwoPhase;
 use crate::DocId;
 use crate::Score;
 use downcast_rs::impl_downcast;
+use std::borrow::{Borrow, BorrowMut};
 use std::ops::DerefMut;
 
 use std::cell::RefCell;
@@ -96,16 +97,16 @@ impl Scorer for Box<dyn Scorer> {
     }
 }
 
-pub struct RcRefCellScorer(Rc<RefCell<dyn Scorer>>);
+pub struct RcRefCellScorer(Rc<RefCell<Box<dyn Scorer>>>);
 
 impl RcRefCellScorer {
     pub fn new(scorer: impl Scorer) -> Self {
         RcRefCellScorer(Rc::new(RefCell::new(Box::new(scorer))))
     }
 
-    // pub fn scorer(&self) -> dyn Scorer {
-    //     self.0.borrow()
-    // }
+    pub fn scorer(&self) -> Box<dyn Scorer> {
+        Box::new(self.0.borrow())
+    }
 
     pub fn scorer_is<T: Scorer>(self) -> bool {
         self.0.borrow().is::<T>()

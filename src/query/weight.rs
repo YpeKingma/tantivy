@@ -1,4 +1,5 @@
 use crate::core::SegmentReader;
+use crate::docset::DocSet;
 use crate::query::scorer::RcRefCellScorer;
 use crate::query::Explanation;
 use crate::DocId;

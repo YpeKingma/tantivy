@@ -87,13 +87,11 @@ impl PhraseWeight {
 
 impl Weight for PhraseWeight {
     fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer> {
-        Ok(RcRefCellScorer::new(
-            if let Some(scorer) = self.phrase_scorer(reader, boost)? {
-                scorer
-            } else {
-                EmptyScorer
-            },
-        ))
+        if let Some(scorer) = self.phrase_scorer(reader, boost)? {
+            Ok(RcRefCellScorer::new(scorer))
+        } else {
+            Ok(RcRefCellScorer::new(EmptyScorer))
+        }
     }
 
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> Result<Explanation> {
@@ -123,8 +121,6 @@ mod tests {
     use crate::{DocSet, Term};
 
     use crate::query::Scorer;
-    use std::cell::RefCell;
-    use std::rc::Rc;
 
     #[test]
     pub fn test_phrase_count() {

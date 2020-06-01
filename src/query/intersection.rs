@@ -1,4 +1,5 @@
 use crate::docset::{DocSet, TERMINATED};
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::term_query::TermScorer;
 use crate::query::EmptyScorer;
 use crate::query::Scorer;
@@ -13,9 +14,9 @@ use crate::Score;
 /// For better performance, the function uses a
 /// specialized implementation if the two
 /// shortest scorers are `TermScorer`s.
-pub fn intersect_scorers(mut scorers: Vec<Box<dyn Scorer>>) -> Box<dyn Scorer> {
+pub fn intersect_scorers(mut scorers: Vec<RcRefCellScorer>) -> RcRefCellScorer {
     if scorers.is_empty() {
-        return Box::new(EmptyScorer);
+        return RcRefCellScorer::new(EmptyScorer);
     }
     if scorers.len() == 1 {
         return scorers.pop().unwrap();
@@ -23,22 +24,22 @@ pub fn intersect_scorers(mut scorers: Vec<Box<dyn Scorer>>) -> Box<dyn Scorer> {
     scorers.sort_by_key(|scorer| scorer.size_hint());
     let doc = go_to_first_doc(&mut scorers[..]);
     if doc == TERMINATED {
-        return Box::new(EmptyScorer);
+        return RcRefCellScorer::new(EmptyScorer);
     }
     // We know that we have at least 2 elements.
     let left = scorers.remove(0);
     let right = scorers.remove(0);
     let all_term_scorers = [&left, &right]
         .iter()
-        .all(|&scorer| scorer.is::<TermScorer>());
+        .all(|&scorer| scorer.scorer_is::<TermScorer>());
     if all_term_scorers {
-        return Box::new(Intersection {
+        return RcRefCellScorer::new(Intersection {
             left: *(left.downcast::<TermScorer>().map_err(|_| ()).unwrap()),
             right: *(right.downcast::<TermScorer>().map_err(|_| ()).unwrap()),
             others: scorers,
         });
     }
-    Box::new(Intersection {
+    RcRefCellScorer::new(Intersection {
         left,
         right,
         others: scorers,
@@ -46,7 +47,7 @@ pub fn intersect_scorers(mut scorers: Vec<Box<dyn Scorer>>) -> Box<dyn Scorer> {
 }
 
 /// Creates a `DocSet` that iterate through the intersection of two or more `DocSet`s.
-pub struct Intersection<TDocSet: DocSet, TOtherDocSet: DocSet = Box<dyn Scorer>> {
+pub struct Intersection<TDocSet: DocSet, TOtherDocSet: DocSet = RcRefCellScorer> {
     left: TDocSet,
     right: TDocSet,
     others: Vec<TOtherDocSet>,

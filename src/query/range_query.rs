@@ -1,6 +1,7 @@
 use crate::common::BitSet;
 use crate::core::Searcher;
 use crate::core::SegmentReader;
+use crate::docset::DocSet;
 use crate::error::TantivyError;
 use crate::query::explanation::does_not_match;
 use crate::query::scorer::RcRefCellScorer;
