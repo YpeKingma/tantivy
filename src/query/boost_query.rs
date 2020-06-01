@@ -1,10 +1,10 @@
 use crate::fastfield::DeleteBitSet;
 use crate::query::explanation::does_not_match;
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::{Explanation, Query, Scorer, Weight};
 use crate::{DocId, DocSet, Searcher, SegmentReader, Term};
 use std::collections::BTreeSet;
 use std::fmt;
-use crate::query::scorer::RcRefCellScorer;
 
 /// `BoostQuery` is a wrapper over a query used to boost its score.
 ///

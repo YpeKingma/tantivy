@@ -4,6 +4,7 @@ use crate::fieldnorm::FieldNormReader;
 use crate::postings::SegmentPostings;
 use crate::query::bm25::BM25Weight;
 use crate::query::explanation::does_not_match;
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::Scorer;
 use crate::query::Weight;
 use crate::query::{EmptyScorer, Explanation};
@@ -11,8 +12,6 @@ use crate::schema::IndexRecordOption;
 use crate::schema::Term;
 use crate::Result;
 use crate::{DocId, DocSet};
-use crate::query::scorer::RcRefCellScorer;
-
 
 pub struct PhraseWeight {
     phrase_terms: Vec<(usize, Term)>,
@@ -93,7 +92,7 @@ impl Weight for PhraseWeight {
                 scorer
             } else {
                 EmptyScorer
-            }
+            },
         ))
     }
 

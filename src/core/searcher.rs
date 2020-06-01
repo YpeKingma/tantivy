@@ -11,9 +11,9 @@ use crate::store::StoreReader;
 use crate::termdict::TermMerger;
 use crate::DocAddress;
 use crate::Index;
+use std::borrow::BorrowMut;
 use std::fmt;
 use std::sync::Arc;
-use std::borrow::BorrowMut;
 
 /// Holds a list of `SegmentReader`s ready for search.
 ///

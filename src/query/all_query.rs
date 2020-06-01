@@ -3,11 +3,10 @@ use crate::core::SegmentReader;
 use crate::docset::{DocSet, TERMINATED};
 use crate::query::boost_query::BoostScorer;
 use crate::query::explanation::does_not_match;
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::{Explanation, Query, Scorer, Weight};
 use crate::DocId;
 use crate::Score;
-use crate::query::scorer::RcRefCellScorer;
-
 
 /// Query that matches all of the documents.
 ///
@@ -76,10 +75,10 @@ impl Scorer for AllScorer {
 mod tests {
     use super::AllQuery;
     use crate::docset::{DocSet, TERMINATED};
+    use crate::query::scorer::Scorer;
     use crate::query::Query;
     use crate::schema::{Schema, TEXT};
     use crate::Index;
-    use crate::query::scorer::Scorer;
 
     fn create_test_index() -> Index {
         let mut schema_builder = Schema::builder();

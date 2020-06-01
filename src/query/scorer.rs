@@ -96,7 +96,7 @@ impl Scorer for Box<dyn Scorer> {
     }
 }
 
-pub struct RcRefCellScorer (Rc<RefCell<dyn Scorer>>);
+pub struct RcRefCellScorer(Rc<RefCell<dyn Scorer>>);
 
 impl RcRefCellScorer {
     pub fn new(scorer: impl Scorer) -> Self {

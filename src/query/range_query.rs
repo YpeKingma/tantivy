@@ -3,6 +3,7 @@ use crate::core::Searcher;
 use crate::core::SegmentReader;
 use crate::error::TantivyError;
 use crate::query::explanation::does_not_match;
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::ConstScorer;
 use crate::query::{BitSetDocSet, Explanation};
 use crate::query::{Query, Weight};
@@ -13,8 +14,6 @@ use crate::DocId;
 use crate::Result;
 use std::collections::Bound;
 use std::ops::Range;
-use crate::query::scorer::RcRefCellScorer;
-
 
 fn map_bound<TFrom, TTo, Transform: Fn(&TFrom) -> TTo>(
     bound: &Bound<TFrom>,

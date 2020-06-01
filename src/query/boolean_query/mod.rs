@@ -8,6 +8,7 @@ mod tests {
 
     use super::*;
     use crate::collector::tests::TEST_COLLECTOR_WITH_SCORE;
+    use crate::docset::DocSet;
     use crate::query::score_combiner::SumWithCoordsCombiner;
     use crate::query::term_query::TermScorer;
     use crate::query::Intersection;
@@ -21,7 +22,6 @@ mod tests {
     use crate::tests::assert_nearly_equals;
     use crate::Index;
     use crate::{DocAddress, DocId};
-    use crate::docset::DocSet;
 
     fn aux_test_helper() -> (Index, Field) {
         let mut schema_builder = Schema::builder();

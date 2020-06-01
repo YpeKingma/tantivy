@@ -4,13 +4,13 @@ use crate::docset::DocSet;
 use crate::postings::SegmentPostings;
 use crate::query::bm25::BM25Weight;
 use crate::query::explanation::does_not_match;
-use crate::query::Weight;
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::Explanation;
+use crate::query::Weight;
 use crate::schema::IndexRecordOption;
 use crate::DocId;
 use crate::Result;
 use crate::Term;
-use crate::query::scorer::RcRefCellScorer;
 
 pub struct TermWeight {
     term: Term,

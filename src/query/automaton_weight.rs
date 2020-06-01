@@ -1,8 +1,8 @@
 use crate::common::BitSet;
 use crate::core::SegmentReader;
 use crate::query::ConstScorer;
-use crate::query::{BitSetDocSet, Explanation};
 use crate::query::Weight;
+use crate::query::{BitSetDocSet, Explanation};
 use crate::schema::{Field, IndexRecordOption};
 use crate::termdict::{TermDictionary, TermStreamer};
 use crate::DocId;
@@ -13,7 +13,6 @@ use tantivy_fst::Automaton;
 
 use crate::docset::DocSet;
 use crate::query::scorer::RcRefCellScorer;
-
 
 /// A weight struct for Fuzzy Term and Regex Queries
 pub struct AutomatonWeight<A> {
@@ -84,13 +83,13 @@ where
 #[cfg(test)]
 mod tests {
     use super::AutomatonWeight;
+    use crate::docset::DocSet;
     use crate::docset::TERMINATED;
+    use crate::query::scorer::Scorer;
     use crate::query::Weight;
     use crate::schema::{Schema, STRING};
     use crate::Index;
     use tantivy_fst::Automaton;
-    use crate::docset::DocSet;
-    use crate::query::scorer::Scorer;
 
     fn create_index() -> Index {
         let mut schema = Schema::builder();

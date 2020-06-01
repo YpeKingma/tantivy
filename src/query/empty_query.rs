@@ -1,14 +1,14 @@
 use super::Scorer;
 use crate::docset::TERMINATED;
 use crate::query::explanation::does_not_match;
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::Weight;
 use crate::query::{Explanation, Query};
 use crate::DocId;
 use crate::DocSet;
 use crate::Score;
 use crate::Searcher;
-use crate::SegmentReader;    
-use crate::query::scorer::RcRefCellScorer;
+use crate::SegmentReader;
 
 /// `EmptyQuery` is a dummy `Query` in which no document matches.
 ///

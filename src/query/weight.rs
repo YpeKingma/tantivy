@@ -1,5 +1,5 @@
-use crate::query::scorer::RcRefCellScorer;
 use crate::core::SegmentReader;
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::Explanation;
 use crate::DocId;
 

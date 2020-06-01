@@ -1,6 +1,7 @@
 use crate::core::SegmentReader;
 use crate::query::explanation::does_not_match;
 use crate::query::score_combiner::{DoNothingCombiner, ScoreCombiner, SumWithCoordsCombiner};
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::term_query::TermScorer;
 use crate::query::EmptyScorer;
 use crate::query::Exclude;
@@ -12,8 +13,6 @@ use crate::query::Weight;
 use crate::query::{intersect_scorers, Explanation};
 use crate::DocId;
 use std::collections::HashMap;
-use crate::query::scorer::RcRefCellScorer;
-
 
 fn scorer_union<TScoreCombiner>(scorers: Vec<Box<dyn Scorer>>) -> Box<dyn Scorer>
 where
