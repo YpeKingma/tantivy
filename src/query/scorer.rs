@@ -5,6 +5,9 @@ use crate::Score;
 use downcast_rs::impl_downcast;
 use std::ops::DerefMut;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 /// Scored set of documents matching a query within a specific segment.
 ///
 /// See [`Query`](./trait.Query.html).
@@ -19,6 +22,7 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
     /// and push the scored documents to the collector.
     fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
         if let Some(mut two_phase) = self.two_phase() {
+            dbg!("two_phase true");
             let mut doc = self.doc();
             while doc != TERMINATED {
                 if two_phase.matches() {
@@ -32,6 +36,7 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
                 callback(doc, self.score());
                 doc = self.advance();
             }
+            todo!("two_phase false should not occur for test_phrase_query_docfreq_order");
         }
     }
 
@@ -88,6 +93,33 @@ impl Scorer for Box<dyn Scorer> {
 
     fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
         self.deref_mut().two_phase()
+    }
+}
+
+impl Scorer for Rc<RefCell<dyn Scorer>> {
+    fn score(&mut self) -> Score {
+        self.borrow_mut().score()
+    }
+
+    fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
+        let mut scorer = self.borrow_mut();
+        scorer.for_each(callback);
+    }
+
+    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+        self.borrow_mut().two_phase()
+    }
+}
+
+impl DocSet for Rc<RefCell<dyn Scorer>> {
+    fn advance(&mut self) -> DocId {
+        self.borrow_mut().advance()
+    }
+    fn doc(&self) -> DocId {
+        self.borrow().doc()
+    }
+    fn size_hint(&self) -> u32 {
+        self.borrow().size_hint()
     }
 }
 
