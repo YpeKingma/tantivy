@@ -4,6 +4,7 @@ use crate::query::{Explanation, Query, Scorer, Weight};
 use crate::{DocId, DocSet, Searcher, SegmentReader, Term};
 use std::collections::BTreeSet;
 use std::fmt;
+use crate::query::scorer::RcRefCellScorer;
 
 /// `BoostQuery` is a wrapper over a query used to boost its score.
 ///
@@ -65,7 +66,7 @@ impl BoostWeight {
 }
 
 impl Weight for BoostWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<Box<dyn Scorer>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<RcRefCellScorer> {
         self.weight.scorer(reader, boost * self.boost)
     }
 

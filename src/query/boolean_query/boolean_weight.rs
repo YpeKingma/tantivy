@@ -12,6 +12,8 @@ use crate::query::Weight;
 use crate::query::{intersect_scorers, Explanation};
 use crate::DocId;
 use std::collections::HashMap;
+use crate::query::scorer::RcRefCellScorer;
+
 
 fn scorer_union<TScoreCombiner>(scorers: Vec<Box<dyn Scorer>>) -> Box<dyn Scorer>
 where
@@ -114,13 +116,13 @@ impl BooleanWeight {
 }
 
 impl Weight for BooleanWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<Box<dyn Scorer>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<RcRefCellScorer> {
         if self.weights.is_empty() {
             Ok(Box::new(EmptyScorer))
         } else if self.weights.len() == 1 {
             let &(occur, ref weight) = &self.weights[0];
             if occur == Occur::MustNot {
-                Ok(Box::new(EmptyScorer))
+                Ok(RcRefCellScorer::new(EmptyScorer))
             } else {
                 weight.scorer(reader, boost)
             }

@@ -5,7 +5,7 @@ use crate::error::TantivyError;
 use crate::query::explanation::does_not_match;
 use crate::query::ConstScorer;
 use crate::query::{BitSetDocSet, Explanation};
-use crate::query::{Query, Scorer, Weight};
+use crate::query::{Query, Weight};
 use crate::schema::Type;
 use crate::schema::{Field, IndexRecordOption, Term};
 use crate::termdict::{TermDictionary, TermStreamer};
@@ -13,6 +13,8 @@ use crate::DocId;
 use crate::Result;
 use std::collections::Bound;
 use std::ops::Range;
+use crate::query::scorer::RcRefCellScorer;
+
 
 fn map_bound<TFrom, TTo, Transform: Fn(&TFrom) -> TTo>(
     bound: &Bound<TFrom>,
@@ -289,7 +291,7 @@ impl RangeWeight {
 }
 
 impl Weight for RangeWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<Box<dyn Scorer>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer> {
         let max_doc = reader.max_doc();
         let mut doc_bitset = BitSet::with_max_value(max_doc);
 
@@ -310,7 +312,7 @@ impl Weight for RangeWeight {
             }
         }
         let doc_bitset = BitSetDocSet::from(doc_bitset);
-        Ok(Box::new(ConstScorer::new(doc_bitset, boost)))
+        Ok(RcRefCellScorer::new(ConstScorer::new(doc_bitset, boost)))
     }
 
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> Result<Explanation> {

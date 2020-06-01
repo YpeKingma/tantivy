@@ -2,7 +2,7 @@ use crate::common::BitSet;
 use crate::core::SegmentReader;
 use crate::query::ConstScorer;
 use crate::query::{BitSetDocSet, Explanation};
-use crate::query::{Scorer, Weight};
+use crate::query::Weight;
 use crate::schema::{Field, IndexRecordOption};
 use crate::termdict::{TermDictionary, TermStreamer};
 use crate::DocId;
@@ -10,6 +10,10 @@ use crate::Result;
 use crate::TantivyError;
 use std::sync::Arc;
 use tantivy_fst::Automaton;
+
+use crate::docset::DocSet;
+use crate::query::scorer::RcRefCellScorer;
+
 
 /// A weight struct for Fuzzy Term and Regex Queries
 pub struct AutomatonWeight<A> {
@@ -40,7 +44,7 @@ impl<A> Weight for AutomatonWeight<A>
 where
     A: Automaton + Send + Sync + 'static,
 {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<Box<dyn Scorer>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer> {
         let max_doc = reader.max_doc();
         let mut doc_bitset = BitSet::with_max_value(max_doc);
 
@@ -62,7 +66,7 @@ where
         }
         let doc_bitset = BitSetDocSet::from(doc_bitset);
         let const_scorer = ConstScorer::new(doc_bitset, boost);
-        Ok(Box::new(const_scorer))
+        Ok(RcRefCellScorer::new(const_scorer))
     }
 
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> Result<Explanation> {
@@ -85,6 +89,8 @@ mod tests {
     use crate::schema::{Schema, STRING};
     use crate::Index;
     use tantivy_fst::Automaton;
+    use crate::docset::DocSet;
+    use crate::query::scorer::Scorer;
 
     fn create_index() -> Index {
         let mut schema = Schema::builder();

@@ -6,6 +6,8 @@ use crate::query::explanation::does_not_match;
 use crate::query::{Explanation, Query, Scorer, Weight};
 use crate::DocId;
 use crate::Score;
+use crate::query::scorer::RcRefCellScorer;
+
 
 /// Query that matches all of the documents.
 ///
@@ -23,12 +25,12 @@ impl Query for AllQuery {
 pub struct AllWeight;
 
 impl Weight for AllWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<Box<dyn Scorer>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<RcRefCellScorer> {
         let all_scorer = AllScorer {
             doc: 0u32,
             max_doc: reader.max_doc(),
         };
-        Ok(Box::new(BoostScorer::new(all_scorer, boost)))
+        Ok(RcRefCellScorer::new(BoostScorer::new(all_scorer, boost)))
     }
 
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> crate::Result<Explanation> {
@@ -73,10 +75,11 @@ impl Scorer for AllScorer {
 #[cfg(test)]
 mod tests {
     use super::AllQuery;
-    use crate::docset::TERMINATED;
+    use crate::docset::{DocSet, TERMINATED};
     use crate::query::Query;
     use crate::schema::{Schema, TEXT};
     use crate::Index;
+    use crate::query::scorer::Scorer;
 
     fn create_test_index() -> Index {
         let mut schema_builder = Schema::builder();

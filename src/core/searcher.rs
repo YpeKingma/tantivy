@@ -13,6 +13,7 @@ use crate::DocAddress;
 use crate::Index;
 use std::fmt;
 use std::sync::Arc;
+use std::borrow::BorrowMut;
 
 /// Holds a list of `SegmentReader`s ready for search.
 ///
@@ -136,12 +137,13 @@ impl Searcher {
         executor: &Executor,
     ) -> crate::Result<C::Fruit> {
         let scoring_enabled = collector.requires_scoring();
+        dbg!(scoring_enabled);
         let weight = query.weight(self, scoring_enabled)?;
         let segment_readers = self.segment_readers();
         let fruits = executor.map(
             |(segment_ord, segment_reader)| {
                 let mut scorer = weight.scorer(segment_reader, 1.0f32)?;
-                collector.collect_segment(scorer.as_mut(), segment_ord as u32, segment_reader)
+                collector.collect_segment(scorer.borrow_mut(), segment_ord as u32, segment_reader)
             },
             segment_readers.iter().enumerate(),
         )?;

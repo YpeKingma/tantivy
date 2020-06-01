@@ -5,11 +5,12 @@ use crate::postings::SegmentPostings;
 use crate::query::bm25::BM25Weight;
 use crate::query::explanation::does_not_match;
 use crate::query::Weight;
-use crate::query::{Explanation, Scorer};
+use crate::query::Explanation;
 use crate::schema::IndexRecordOption;
 use crate::DocId;
 use crate::Result;
 use crate::Term;
+use crate::query::scorer::RcRefCellScorer;
 
 pub struct TermWeight {
     term: Term,
@@ -18,9 +19,9 @@ pub struct TermWeight {
 }
 
 impl Weight for TermWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<Box<dyn Scorer>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer> {
         let term_scorer = self.scorer_specialized(reader, boost)?;
-        Ok(Box::new(term_scorer))
+        Ok(RcRefCellScorer::new(term_scorer))
     }
 
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> Result<Explanation> {

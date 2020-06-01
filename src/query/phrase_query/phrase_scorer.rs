@@ -311,6 +311,8 @@ impl<TPostings: Postings> TwoPhase for PhraseTwoPhase<TPostings> {
 impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
     fn score(&mut self) -> f32 {
         let doc = self.doc();
+        dbg!("PhraseScorer score");
+        dbg!(doc);
         let fieldnorm_id = self.fieldnorm_reader.fieldnorm_id(doc);
         self.similarity_weight
             .score(fieldnorm_id, self.phrase_count)
@@ -319,10 +321,13 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
 
 impl<TPostings: Postings> Scorer for RcRefCellPhraseScorer<TPostings> {
     fn score(&mut self) -> Score {
+        dbg!("RcRefCellPhraseScorer score");
+        dbg!(self.0.borrow().doc());
         self.0.borrow_mut().score()
     }
 
     fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+        dbg!("RcRefCellPhraseScorer two_phase");
         let ptp = PhraseTwoPhase::<TPostings>::new(Rc::clone(&self.0));
         Some(Box::new(ptp))
     }

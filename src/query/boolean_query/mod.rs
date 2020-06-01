@@ -21,6 +21,7 @@ mod tests {
     use crate::tests::assert_nearly_equals;
     use crate::Index;
     use crate::{DocAddress, DocId};
+    use crate::docset::DocSet;
 
     fn aux_test_helper() -> (Index, Field) {
         let mut schema_builder = Schema::builder();
@@ -61,7 +62,7 @@ mod tests {
         let scorer = weight
             .scorer(searcher.segment_reader(0u32), 1.0f32)
             .unwrap();
-        assert!(scorer.is::<TermScorer>());
+        assert!(scorer.scorer_is::<TermScorer>());
     }
 
     #[test]
@@ -75,7 +76,7 @@ mod tests {
             let scorer = weight
                 .scorer(searcher.segment_reader(0u32), 1.0f32)
                 .unwrap();
-            assert!(scorer.is::<Intersection<TermScorer>>());
+            assert!(scorer.scorer_is::<Intersection<TermScorer>>());
         }
         {
             let query = query_parser.parse_query("+a +(b c)").unwrap();
@@ -83,7 +84,7 @@ mod tests {
             let scorer = weight
                 .scorer(searcher.segment_reader(0u32), 1.0f32)
                 .unwrap();
-            assert!(scorer.is::<Intersection<Box<dyn Scorer>>>());
+            assert!(scorer.scorer_is::<Intersection<Box<dyn Scorer>>>());
         }
     }
 
@@ -98,7 +99,7 @@ mod tests {
             let scorer = weight
                 .scorer(searcher.segment_reader(0u32), 1.0f32)
                 .unwrap();
-            assert!(scorer.is::<RequiredOptionalScorer<
+            assert!(scorer.scorer_is::<RequiredOptionalScorer<
                 Box<dyn Scorer>,
                 Box<dyn Scorer>,
                 SumWithCoordsCombiner,
@@ -110,7 +111,7 @@ mod tests {
             let scorer = weight
                 .scorer(searcher.segment_reader(0u32), 1.0f32)
                 .unwrap();
-            assert!(scorer.is::<TermScorer>());
+            assert!(scorer.scorer_is::<TermScorer>());
         }
     }
 
@@ -274,7 +275,7 @@ mod tests {
         index_writer.add_document(doc!(
             // tf = 1 1
             title =>  "PDF Мастер Класс \"Морячок\" (Оксана Лифенко)",
-            // tf = 0 0 
+            // tf = 0 0
             text => "https://i.ibb.co/pzvHrDN/I3d U T6 Gg TM.jpg\nhttps://i.ibb.co/NFrb6v6/N0ls Z9nwjb U.jpg\nВ описание входит штаны, кофта, берет, матросский воротник. Описание продается в формате PDF, состоит из 12 страниц формата А4 и может быть напечатано на любом принтере.\nОписание предназначено для кукол BJD RealPuki от FairyLand, но может подойти и другим подобным куклам. Также вы можете вязать этот наряд из обычной пряжи, и он подойдет для куколок побольше.\nhttps://vk.com/market 95724412?w=product 95724412_2212"
         ));
         for _ in 0..1_000 {

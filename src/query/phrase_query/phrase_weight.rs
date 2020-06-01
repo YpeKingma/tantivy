@@ -11,6 +11,8 @@ use crate::schema::IndexRecordOption;
 use crate::schema::Term;
 use crate::Result;
 use crate::{DocId, DocSet};
+use crate::query::scorer::RcRefCellScorer;
+
 
 pub struct PhraseWeight {
     phrase_terms: Vec<(usize, Term)>,
@@ -85,12 +87,14 @@ impl PhraseWeight {
 }
 
 impl Weight for PhraseWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<Box<dyn Scorer>> {
-        if let Some(scorer) = self.phrase_scorer(reader, boost)? {
-            Ok(Box::new(scorer))
-        } else {
-            Ok(Box::new(EmptyScorer))
-        }
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer> {
+        Ok(RcRefCellScorer::new(
+            if let Some(scorer) = self.phrase_scorer(reader, boost)? {
+                scorer
+            } else {
+                EmptyScorer
+            }
+        ))
     }
 
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> Result<Explanation> {
