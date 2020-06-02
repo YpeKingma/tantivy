@@ -98,19 +98,19 @@ impl Scorer for Box<dyn Scorer> {
     }
 }
 
-pub struct RcRefCellScorer(Rc<RefCell<Box<dyn Scorer>>>);
+pub struct RcRefCellScorer<TScorer: Scorer + Sized> (Rc<RefCell<Box<TScorer>>>);
 
-impl RcRefCellScorer {
-    pub fn new(scorer: impl Scorer) -> Self {
+impl<TScorer: Scorer> RcRefCellScorer<TScorer> {
+    pub fn new(scorer: TScorer) -> Self {
         RcRefCellScorer(Rc::new(RefCell::new(Box::new(scorer))))
     }
 
-    pub fn scorer_is<T: Scorer>(self) -> bool {
+    pub fn scorer_is<T>(self) -> bool {
         self.0.as_ref().borrow().is::<T>()
     }
 }
 
-impl Scorer for RcRefCellScorer {
+impl Scorer for RcRefCellScorer<dyn Scorer> {
     fn score(&mut self) -> Score {
         self.0.as_ref().borrow_mut().score()
     }
@@ -121,10 +121,11 @@ impl Scorer for RcRefCellScorer {
 
     fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
         self.0.as_ref().borrow_mut().two_phase()
-    }
+    }                                                         
 }
 
-impl DocSet for RcRefCellScorer {
+impl DocSet for RcRefCellScorer<dyn Scorer> {   
+    // FIXME: add seek()
     fn advance(&mut self) -> DocId {
         self.0.as_ref().borrow_mut().advance()
     }

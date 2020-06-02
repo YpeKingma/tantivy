@@ -2,6 +2,7 @@ use crate::core::SegmentReader;
 use crate::docset::DocSet;
 use crate::query::scorer::RcRefCellScorer;
 use crate::query::Explanation;
+use crate::query::Scorer;
 use crate::DocId;
 
 /// A Weight is the specialization of a Query
@@ -14,7 +15,7 @@ pub trait Weight: Send + Sync + 'static {
     /// `boost` is a multiplier to apply to the score.
     ///
     /// See [`Query`](./trait.Query.html).
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<RcRefCellScorer>;
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<RcRefCellScorer<dyn Scorer>>;
 
     /// Returns an `Explanation` for the given document.
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> crate::Result<Explanation>;

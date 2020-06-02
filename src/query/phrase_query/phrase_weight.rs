@@ -86,7 +86,7 @@ impl PhraseWeight {
 }
 
 impl Weight for PhraseWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer<dyn Scorer>> {
         if let Some(scorer) = self.phrase_scorer(reader, boost)? {
             Ok(RcRefCellScorer::new(scorer))
         } else {
@@ -114,7 +114,6 @@ impl Weight for PhraseWeight {
 
 #[cfg(test)]
 mod tests {
-    use super::super::phrase_scorer::RcRefCellPhraseScorer;
     use super::super::tests::create_index;
     use crate::docset::TERMINATED;
     use crate::query::PhraseQuery;
@@ -133,12 +132,10 @@ mod tests {
             Term::from_field_text(text_field, "b"),
         ]);
         let phrase_weight = phrase_query.phrase_weight(&searcher, true).unwrap();
-        let mut phrase_scorer = RcRefCellPhraseScorer::new(
-            phrase_weight
-                .phrase_scorer(searcher.segment_reader(0u32), 1.0f32)
-                .unwrap()
-                .unwrap(),
-        );
+        let mut phrase_scorer = phrase_weight
+            .phrase_scorer(searcher.segment_reader(0u32), 1.0f32)
+            .unwrap()
+            .unwrap();
         let mut phrase_two_phase = phrase_scorer.two_phase().unwrap();
         assert_eq!(phrase_scorer.doc(), 1);
         assert!(phrase_two_phase.matches());
