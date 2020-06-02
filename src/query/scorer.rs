@@ -3,11 +3,8 @@ use crate::query::twophase::TwoPhase;
 use crate::DocId;
 use crate::Score;
 use downcast_rs::impl_downcast;
-use std::borrow::{Borrow, BorrowMut};
-use std::ops::DerefMut;
-
-use std::cell::Ref;
 use std::cell::RefCell;
+use std::ops::DerefMut;
 use std::rc::Rc;
 
 /// Scored set of documents matching a query within a specific segment.
@@ -106,42 +103,36 @@ impl RcRefCellScorer {
         RcRefCellScorer(Rc::new(RefCell::new(Box::new(scorer))))
     }
 
-    pub fn scorer(&self) -> Box<dyn Scorer> {
-        let ref_scorer: Ref<dyn Scorer> = *self.0.borrow();
-        Box::new(*self.0.borrow())
-    }
-
     pub fn scorer_is<T: Scorer>(self) -> bool {
-        self.0.borrow().is::<T>()
+        self.0.as_ref().borrow().is::<T>()
     }
 }
 
 impl Scorer for RcRefCellScorer {
     fn score(&mut self) -> Score {
-        self.borrow_mut().score()
+        self.0.as_ref().borrow_mut().score()
     }
 
     fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
-        let mut scorer = self.borrow_mut();
-        scorer.for_each(callback);
+        self.0.as_ref().borrow_mut().for_each(callback);
     }
 
     fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
-        self.borrow_mut().two_phase()
+        self.0.as_ref().borrow_mut().two_phase()
     }
 }
 
 impl DocSet for RcRefCellScorer {
     fn advance(&mut self) -> DocId {
-        self.borrow_mut().advance()
+        self.0.as_ref().borrow_mut().advance()
     }
 
     fn doc(&self) -> DocId {
-        self.borrow().doc()
+        self.0.as_ref().borrow().doc()
     }
 
     fn size_hint(&self) -> u32 {
-        self.borrow().size_hint()
+        self.0.as_ref().borrow().size_hint()
     }
 }
 
