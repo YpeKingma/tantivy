@@ -34,8 +34,8 @@ pub fn intersect_scorers(mut scorers: Vec<RcRefCellScorer>) -> RcRefCellScorer {
         .all(|&scorer| scorer.scorer_is::<TermScorer>());
     if all_term_scorers {
         return RcRefCellScorer::new(Intersection {
-            left: *(left.downcast::<TermScorer>().map_err(|_| ()).unwrap()),
-            right: *(right.downcast::<TermScorer>().map_err(|_| ()).unwrap()),
+            left: *(left.scorer().downcast::<TermScorer>().map_err(|_| ()).unwrap()),
+            right: *(right.scorer().downcast::<TermScorer>().map_err(|_| ()).unwrap()),
             others: scorers,
         });
     }
