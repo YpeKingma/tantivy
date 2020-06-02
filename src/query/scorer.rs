@@ -21,7 +21,7 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
     /// and push the scored documents to the collector.
     fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
         if let Some(mut two_phase) = self.two_phase() {
-            dbg!("two_phase true");
+            dbg!("two_phase Some");
             let mut doc = self.doc();
             while doc != TERMINATED {
                 if two_phase.matches() {
@@ -30,6 +30,7 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
                 doc = self.advance();
             }
         } else {
+            dbg!("two_phase None");
             let mut doc = self.doc();
             while doc != TERMINATED {
                 callback(doc, self.score());
@@ -75,6 +76,7 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
     ///
     /// This implementation returns None.
     fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+        todo!("Scorer.two_phase() should be overriden in test_phrase_query_docfreq_order");
         None
     }
 }
