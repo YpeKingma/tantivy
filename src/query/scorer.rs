@@ -64,6 +64,7 @@ pub trait Scorer: downcast_rs::Downcast + DocSet + 'static {
             }
             doc = self.advance();
         }
+        todo!("FIXME: Add two phase as in Scorer.for_each()");
     }
 
     /// Return a TwoPhase for this Scorer, when available.
