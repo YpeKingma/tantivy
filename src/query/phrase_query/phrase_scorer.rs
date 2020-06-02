@@ -317,6 +317,9 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
         self.similarity_weight
             .score(fieldnorm_id, self.phrase_count)
     }
+    
+    // CHECKME: implement two_phase() here, but how to do that without an RcRefCell to clone()?
+    // Probably need generics over Scorer.
 }
 
 impl<TPostings: Postings> Scorer for RcRefCellPhraseScorer<TPostings> {
