@@ -3,7 +3,7 @@ use crate::docset::DocSet;
 use crate::query::explanation::does_not_match;
 use crate::query::score_combiner::{DoNothingCombiner, ScoreCombiner, SumWithCoordsCombiner};
 use crate::query::scorer::RcRefCellScorer;
-use crate::query::term_query::TermScorer;
+//use crate::query::term_query::TermScorer;
 use crate::query::EmptyScorer;
 use crate::query::Exclude;
 use crate::query::Occur;
@@ -24,25 +24,25 @@ where
         return scorers.into_iter().next().unwrap(); //< we checked the size beforehands
     }
 
-    {
-        let is_all_term_queries = scorers
-            .iter()
-            .all(|scorer| scorer.scorer_is::<TermScorer>());
-        if is_all_term_queries {
-            let scorers: Vec<TermScorer> = scorers
-                .into_iter()
-                .map(|scorer| {
-                    *(scorer
-                        .scorer()
-                        .downcast::<TermScorer>()
-                        .map_err(|_| ())
-                        .unwrap())
-                })
-                .collect();
-            let scorer = RcRefCellScorer::new(Union::<TermScorer, TScoreCombiner>::from(scorers));
-            return scorer;
-        }
-    }
+    //    {
+    //        let is_all_term_queries = scorers
+    //            .iter()
+    //            .all(|scorer| scorer.scorer_is::<TermScorer>());
+    //        if is_all_term_queries {
+    //            let scorers: Vec<TermScorer> = scorers
+    //                .into_iter()
+    //                .map(|scorer| {
+    //                    *(scorer
+    //                        .scorer()
+    //                        .downcast::<TermScorer>()
+    //                        .map_err(|_| ())
+    //                        .unwrap())
+    //                })
+    //                .collect();
+    //            let scorer = RcRefCellScorer::new(Union::<TermScorer, TScoreCombiner>::from(scorers));
+    //            return scorer;
+    //        }
+    //    }
 
     let scorer = RcRefCellScorer::new(Union::<_, TScoreCombiner>::from(scorers));
     scorer

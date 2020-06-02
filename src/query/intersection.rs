@@ -11,6 +11,7 @@ use crate::Score;
 /// The score associated to the documents is the sum of the
 /// score of the `Scorer`s given in argument.
 ///
+/// To be done:
 /// For better performance, the function uses a
 /// specialized implementation if the two
 /// shortest scorers are `TermScorer`s.
@@ -26,35 +27,13 @@ pub fn intersect_scorers(mut scorers: Vec<RcRefCellScorer>) -> RcRefCellScorer {
     if doc == TERMINATED {
         return RcRefCellScorer::new(EmptyScorer);
     }
-    dbg!("FIXME: properly implement intersection for RcRefCellScorer");
-    RcRefCellScorer::new(EmptyScorer)
-}
-//  Remaining code:   
-//     // We know that we have at least 2 elements.
-//     let left = scorers.remove(0);
-//     let right = scorers.remove(0);
-//     let all_term_scorers = [&left, &right]
-//         .iter()
-//         .all(|&scorer| scorer.scorer_is::<TermScorer>());
-//     if all_term_scorers {
-//         return RcRefCellScorer::new(Intersection {
-//             left: *(left.scorer().downcast::<TermScorer>().map_err(|_| ()).unwrap()),
-//             right: *(right.scorer().downcast::<TermScorer>().map_err(|_| ()).unwrap()),
-//             others: scorers,
-//         });
-//     }
-//     RcRefCellScorer::new(Intersection {
-//         left,
-//         right,
-//         others: scorers,
-//     })
-// }
-
-/// Creates a `DocSet` that iterate through the intersection of two or more `DocSet`s.
-pub struct Intersection<TDocSet: DocSet, TOtherDocSet: DocSet = RcRefCellScorer> {
-    left: TDocSet,
-    right: TDocSet,
-    others: Vec<TOtherDocSet>,
+    let left = scorers.remove(0);
+    let right = scorers.remove(0);
+    RcRefCellScorer::new(Intersection {
+        left,
+        right,
+        others: scorers,
+    })
 }
 
 fn go_to_first_doc<TDocSet: DocSet>(docsets: &mut [TDocSet]) -> DocId {
@@ -69,6 +48,13 @@ fn go_to_first_doc<TDocSet: DocSet>(docsets: &mut [TDocSet]) -> DocId {
         }
         return candidate;
     }
+}
+
+/// Creates a `DocSet` that iterate through the intersection of two or more `DocSet`s.
+pub struct Intersection<TDocSet: DocSet, TOtherDocSet: DocSet = RcRefCellScorer> {
+    left: TDocSet,
+    right: TDocSet,
+    others: Vec<TOtherDocSet>,
 }
 
 impl<TDocSet: DocSet> Intersection<TDocSet, TDocSet> {
