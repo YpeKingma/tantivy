@@ -1,6 +1,6 @@
 use crate::docset::{DocSet, TERMINATED};
 use crate::query::scorer::RcRefCellScorer;
-use crate::query::term_query::TermScorer;
+//use crate::query::term_query::TermScorer;
 use crate::query::EmptyScorer;
 use crate::query::Scorer;
 use crate::DocId;
@@ -26,25 +26,29 @@ pub fn intersect_scorers(mut scorers: Vec<RcRefCellScorer>) -> RcRefCellScorer {
     if doc == TERMINATED {
         return RcRefCellScorer::new(EmptyScorer);
     }
-    // We know that we have at least 2 elements.
-    let left = scorers.remove(0);
-    let right = scorers.remove(0);
-    let all_term_scorers = [&left, &right]
-        .iter()
-        .all(|&scorer| scorer.scorer_is::<TermScorer>());
-    if all_term_scorers {
-        return RcRefCellScorer::new(Intersection {
-            left: *(left.scorer().downcast::<TermScorer>().map_err(|_| ()).unwrap()),
-            right: *(right.scorer().downcast::<TermScorer>().map_err(|_| ()).unwrap()),
-            others: scorers,
-        });
-    }
-    RcRefCellScorer::new(Intersection {
-        left,
-        right,
-        others: scorers,
-    })
+    dbg!("FIXME: properly implement intersection for RcRefCellScorer");
+    RcRefCellScorer::new(EmptyScorer)
 }
+//  Remaining code:   
+//     // We know that we have at least 2 elements.
+//     let left = scorers.remove(0);
+//     let right = scorers.remove(0);
+//     let all_term_scorers = [&left, &right]
+//         .iter()
+//         .all(|&scorer| scorer.scorer_is::<TermScorer>());
+//     if all_term_scorers {
+//         return RcRefCellScorer::new(Intersection {
+//             left: *(left.scorer().downcast::<TermScorer>().map_err(|_| ()).unwrap()),
+//             right: *(right.scorer().downcast::<TermScorer>().map_err(|_| ()).unwrap()),
+//             others: scorers,
+//         });
+//     }
+//     RcRefCellScorer::new(Intersection {
+//         left,
+//         right,
+//         others: scorers,
+//     })
+// }
 
 /// Creates a `DocSet` that iterate through the intersection of two or more `DocSet`s.
 pub struct Intersection<TDocSet: DocSet, TOtherDocSet: DocSet = RcRefCellScorer> {

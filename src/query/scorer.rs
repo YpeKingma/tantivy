@@ -6,6 +6,7 @@ use downcast_rs::impl_downcast;
 use std::borrow::{Borrow, BorrowMut};
 use std::ops::DerefMut;
 
+use std::cell::Ref;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -106,7 +107,8 @@ impl RcRefCellScorer {
     }
 
     pub fn scorer(&self) -> Box<dyn Scorer> {
-        Box::new(self.0.borrow())
+        let ref_scorer: Ref<dyn Scorer> = *self.0.borrow();
+        Box::new(*self.0.borrow())
     }
 
     pub fn scorer_is<T: Scorer>(self) -> bool {
