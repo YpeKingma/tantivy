@@ -10,7 +10,6 @@ use crate::Result;
 use crate::TantivyError;
 use std::sync::Arc;
 use tantivy_fst::Automaton;
-
 use crate::docset::DocSet;
 use crate::query::scorer::RcRefCellScorer;
 
@@ -69,7 +68,7 @@ where
         }
         let doc_bitset = BitSetDocSet::from(doc_bitset);
         let const_scorer = ConstScorer::new(doc_bitset, boost);
-        Ok(RcRefCellScorer::new(const_scorer))
+        Ok(RcRefCellScorer::new(Box::new(const_scorer)))
     }
 
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> Result<Explanation> {
