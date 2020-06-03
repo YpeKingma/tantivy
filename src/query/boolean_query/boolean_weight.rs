@@ -2,21 +2,23 @@ use crate::core::SegmentReader;
 use crate::docset::DocSet;
 use crate::query::explanation::does_not_match;
 use crate::query::score_combiner::{DoNothingCombiner, ScoreCombiner, SumWithCoordsCombiner};
-use crate::query::scorer::RcRefCellScorer;
+use crate::query::scorer::{RcRefCellScorer, ScorerSized};
 //use crate::query::term_query::TermScorer;
 use crate::query::EmptyScorer;
 use crate::query::Exclude;
 use crate::query::Occur;
 use crate::query::RequiredOptionalScorer;
-use crate::query::Scorer;
 use crate::query::Union;
 use crate::query::Weight;
 use crate::query::{intersect_scorers, Explanation};
 use crate::DocId;
 use std::collections::HashMap;
 
-fn scorer_union<TScoreCombiner>(scorers: Vec<RcRefCellScorer>) -> RcRefCellScorer
+fn scorer_union<TScorer, TScoreCombiner>(
+    scorers: Vec<RcRefCellScorer<TScorer>>,
+) -> RcRefCellScorer<Union<TScorer, TScoreCombiner>>
 where
+    TScorer: ScorerSized,
     TScoreCombiner: ScoreCombiner,
 {
     assert!(!scorers.is_empty());
@@ -65,7 +67,7 @@ impl BooleanWeight {
         &self,
         reader: &SegmentReader,
         boost: f32,
-    ) -> crate::Result<HashMap<Occur, Vec<RcRefCellScorer>>> {
+    ) -> crate::Result<HashMap<Occur, Vec<RcRefCellScorer<dyn ScorerSized>>>> {
         let mut per_occur_scorers: HashMap<Occur, Vec<RcRefCellScorer>> = HashMap::new();
         for &(ref occur, ref subweight) in &self.weights {
             let sub_scorer: RcRefCellScorer = subweight.scorer(reader, boost)?;
@@ -81,7 +83,7 @@ impl BooleanWeight {
         &self,
         reader: &SegmentReader,
         boost: f32,
-    ) -> crate::Result<RcRefCellScorer> {
+    ) -> crate::Result<RcRefCellScorer<dyn ScorerSized>> {
         let mut per_occur_scorers = self.per_occur_scorers(reader, boost)?;
 
         let should_scorer_opt: Option<RcRefCellScorer> = per_occur_scorers
@@ -126,7 +128,11 @@ impl BooleanWeight {
 }
 
 impl Weight for BooleanWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<RcRefCellScorer> {
+    fn scorer(
+        &self,
+        reader: &SegmentReader,
+        boost: f32,
+    ) -> crate::Result<RcRefCellScorer<dyn ScorerSized>> {
         if self.weights.is_empty() {
             Ok(RcRefCellScorer::new(EmptyScorer))
         } else if self.weights.len() == 1 {

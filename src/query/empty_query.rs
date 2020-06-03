@@ -1,7 +1,7 @@
 use super::Scorer;
 use crate::docset::TERMINATED;
 use crate::query::explanation::does_not_match;
-use crate::query::scorer::RcRefCellScorer;
+use crate::query::scorer::{RcRefCellScorer, ScorerSized};
 use crate::query::Weight;
 use crate::query::{Explanation, Query};
 use crate::DocId;
@@ -35,7 +35,11 @@ impl Query for EmptyQuery {
 /// It is useful for tests and handling edge cases.
 pub struct EmptyWeight;
 impl Weight for EmptyWeight {
-    fn scorer(&self, _reader: &SegmentReader, _boost: f32) -> crate::Result<RcRefCellScorer> {
+    fn scorer(
+        &self,
+        _reader: &SegmentReader,
+        _boost: f32,
+    ) -> crate::Result<RcRefCellScorer<dyn ScorerSized>> {
         Ok(RcRefCellScorer::new(EmptyScorer))
     }
 

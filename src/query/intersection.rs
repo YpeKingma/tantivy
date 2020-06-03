@@ -1,5 +1,5 @@
 use crate::docset::{DocSet, TERMINATED};
-use crate::query::scorer::RcRefCellScorer;
+use crate::query::scorer::{RcRefCellScorer, ScorerSized};
 //use crate::query::term_query::TermScorer;
 use crate::query::EmptyScorer;
 use crate::query::Scorer;
@@ -15,7 +15,9 @@ use crate::Score;
 /// For better performance, the function uses a
 /// specialized implementation if the two
 /// shortest scorers are `TermScorer`s.
-pub fn intersect_scorers(mut scorers: Vec<RcRefCellScorer>) -> RcRefCellScorer {
+pub fn intersect_scorers(
+    mut scorers: Vec<RcRefCellScorer<dyn ScorerSized>>,
+) -> RcRefCellScorer<dyn ScorerSized> {
     if scorers.is_empty() {
         return RcRefCellScorer::new(EmptyScorer);
     }
@@ -51,7 +53,7 @@ fn go_to_first_doc<TDocSet: DocSet>(docsets: &mut [TDocSet]) -> DocId {
 }
 
 /// Creates a `DocSet` that iterate through the intersection of two or more `DocSet`s.
-pub struct Intersection<TDocSet: DocSet, TOtherDocSet: DocSet = RcRefCellScorer> {
+pub struct Intersection<TDocSet: DocSet, TOtherDocSet: DocSet = RcRefCellScorer<dyn ScorerSized>> {
     left: TDocSet,
     right: TDocSet,
     others: Vec<TOtherDocSet>,
