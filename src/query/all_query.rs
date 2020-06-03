@@ -3,7 +3,7 @@ use crate::core::SegmentReader;
 use crate::docset::{DocSet, TERMINATED};
 use crate::query::boost_query::BoostScorer;
 use crate::query::explanation::does_not_match;
-use crate::query::scorer::{RcRefCellScorer, ScorerSized};
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::{Explanation, Query, Scorer, Weight};
 use crate::DocId;
 use crate::Score;
@@ -24,11 +24,7 @@ impl Query for AllQuery {
 pub struct AllWeight;
 
 impl Weight for AllWeight {
-    fn scorer(
-        &self,
-        reader: &SegmentReader,
-        boost: f32,
-    ) -> crate::Result<RcRefCellScorer<dyn ScorerSized>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<RcRefCellScorer> {
         let all_scorer = AllScorer {
             doc: 0u32,
             max_doc: reader.max_doc(),

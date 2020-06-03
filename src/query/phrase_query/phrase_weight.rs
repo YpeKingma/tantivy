@@ -4,7 +4,7 @@ use crate::fieldnorm::FieldNormReader;
 use crate::postings::SegmentPostings;
 use crate::query::bm25::BM25Weight;
 use crate::query::explanation::does_not_match;
-use crate::query::scorer::{RcRefCellScorer, ScorerSized};
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::Scorer;
 use crate::query::Weight;
 use crate::query::{EmptyScorer, Explanation};
@@ -86,11 +86,7 @@ impl PhraseWeight {
 }
 
 impl Weight for PhraseWeight {
-    fn scorer(
-        &self,
-        reader: &SegmentReader,
-        boost: f32,
-    ) -> Result<RcRefCellScorer<dyn ScorerSized>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer> {
         if let Some(scorer) = self.phrase_scorer(reader, boost)? {
             Ok(RcRefCellScorer::new(scorer))
         } else {

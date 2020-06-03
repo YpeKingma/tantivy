@@ -1,6 +1,6 @@
 use crate::fastfield::DeleteBitSet;
 use crate::query::explanation::does_not_match;
-use crate::query::scorer::{RcRefCellScorer, ScorerSized};
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::{Explanation, Query, Scorer, Weight};
 use crate::{DocId, DocSet, Searcher, SegmentReader, Term};
 use std::collections::BTreeSet;
@@ -66,11 +66,7 @@ impl BoostWeight {
 }
 
 impl Weight for BoostWeight {
-    fn scorer(
-        &self,
-        reader: &SegmentReader,
-        boost: f32,
-    ) -> crate::Result<RcRefCellScorer<dyn ScorerSized>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<RcRefCellScorer> {
         self.weight.scorer(reader, boost * self.boost)
     }
 

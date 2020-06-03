@@ -1,7 +1,6 @@
 use crate::common::TinySet;
 use crate::docset::{DocSet, TERMINATED};
 use crate::query::score_combiner::{DoNothingCombiner, ScoreCombiner};
-use crate::query::scorer::ScorerSized;
 use crate::query::Scorer;
 use crate::DocId;
 use crate::Score;
@@ -242,13 +241,6 @@ where
     fn score(&mut self) -> Score {
         self.score
     }
-}
-
-impl<TScorer, TScoreCombiner> ScorerSized for Union<TScorer, TScoreCombiner>
-where
-    TScoreCombiner: ScoreCombiner,
-    TScorer: Scorer,
-{
 }
 
 #[cfg(test)]
