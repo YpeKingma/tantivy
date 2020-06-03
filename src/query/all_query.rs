@@ -33,7 +33,9 @@ impl Weight for AllWeight {
             doc: 0u32,
             max_doc: reader.max_doc(),
         };
-        Ok(RcRefCellScorer::new(Box::new(BoostScorer::new(all_scorer, boost))))
+        Ok(RcRefCellScorer::new(Box::new(BoostScorer::new(
+            all_scorer, boost,
+        ))))
     }
 
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> crate::Result<Explanation> {

@@ -46,7 +46,7 @@ where
     //        }
     //    }
 
-    let scorer = RcRefCellScorer::new(Union::<_, TScoreCombiner>::from(scorers));
+    let scorer = RcRefCellScorer::new(Box::new(Union::<_, TScoreCombiner>::from(scorers)));
     scorer
 }
 

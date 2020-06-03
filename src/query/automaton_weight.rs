@@ -1,5 +1,7 @@
 use crate::common::BitSet;
 use crate::core::SegmentReader;
+use crate::docset::DocSet;
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::ConstScorer;
 use crate::query::{BitSetDocSet, Explanation};
 use crate::query::{Scorer, Weight};
@@ -10,8 +12,6 @@ use crate::Result;
 use crate::TantivyError;
 use std::sync::Arc;
 use tantivy_fst::Automaton;
-use crate::docset::DocSet;
-use crate::query::scorer::RcRefCellScorer;
 
 /// A weight struct for Fuzzy Term and Regex Queries
 pub struct AutomatonWeight<A> {
