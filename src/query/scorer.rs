@@ -112,6 +112,10 @@ impl<TScorer: Scorer> RcRefCellScorer<TScorer> {
     pub fn borrow_mut(&mut self) -> &mut TScorer {
         self.0.as_ref().borrow_mut()
     }
+
+    pub fn seek(&mut self, doc: DocId) -> DocId {
+        self.borrow_mut().seek(doc)
+    }
 }
 
 //impl<TScorer: Scorer> Scorer for RcRefCellScorer<TScorer> {
