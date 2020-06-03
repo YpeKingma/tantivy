@@ -4,7 +4,7 @@ use crate::docset::DocSet;
 use crate::postings::SegmentPostings;
 use crate::query::bm25::BM25Weight;
 use crate::query::explanation::does_not_match;
-use crate::query::scorer::RcRefCellScorer;
+use crate::query::scorer::{RcRefCellScorer, Scorer};
 use crate::query::Explanation;
 use crate::query::Weight;
 use crate::schema::IndexRecordOption;
@@ -19,7 +19,7 @@ pub struct TermWeight {
 }
 
 impl Weight for TermWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer<Box<dyn Scorer>>> {
         let term_scorer = self.scorer_specialized(reader, boost)?;
         Ok(RcRefCellScorer::new(term_scorer))
     }

@@ -1,7 +1,7 @@
 use crate::common::BitSet;
 use crate::core::SegmentReader;
 use crate::query::ConstScorer;
-use crate::query::Weight;
+use crate::query::{Scorer, Weight};
 use crate::query::{BitSetDocSet, Explanation};
 use crate::schema::{Field, IndexRecordOption};
 use crate::termdict::{TermDictionary, TermStreamer};
@@ -43,7 +43,7 @@ impl<A> Weight for AutomatonWeight<A>
 where
     A: Automaton + Send + Sync + 'static,
 {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer<Box<dyn Scorer>>> {
         let max_doc = reader.max_doc();
         let mut doc_bitset = BitSet::with_max_value(max_doc);
 

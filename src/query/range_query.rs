@@ -7,7 +7,7 @@ use crate::query::explanation::does_not_match;
 use crate::query::scorer::RcRefCellScorer;
 use crate::query::ConstScorer;
 use crate::query::{BitSetDocSet, Explanation};
-use crate::query::{Query, Weight};
+use crate::query::{Query, Weight, Scorer};
 use crate::schema::Type;
 use crate::schema::{Field, IndexRecordOption, Term};
 use crate::termdict::{TermDictionary, TermStreamer};
@@ -291,10 +291,10 @@ impl RangeWeight {
 }
 
 impl Weight for RangeWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer<Box<dyn Scorer>>> {
         let max_doc = reader.max_doc();
         let mut doc_bitset = BitSet::with_max_value(max_doc);
-
+                                                                                                             
         let inverted_index = reader.inverted_index(self.field);
         let term_dict = inverted_index.terms();
         let mut term_range = self.term_range(term_dict);

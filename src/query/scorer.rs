@@ -98,19 +98,19 @@ impl Scorer for Box<dyn Scorer> {
     }
 }
 
-pub struct RcRefCellScorer(Rc<RefCell<Box<dyn Scorer>>>);
+pub struct RcRefCellScorer<TScorer: Scorer> (Rc<RefCell<TScorer>>);
 
-impl RcRefCellScorer {
-    pub fn new(scorer: impl Scorer) -> Self {
-        RcRefCellScorer(Rc::new(RefCell::new(Box::new(scorer))))
+impl<TScorer: Scorer> RcRefCellScorer<TScorer> {
+    pub fn new(scorer: TScorer) -> Self {
+        RcRefCellScorer(Rc::new(RefCell::new(scorer)))
     }
 
-    pub fn scorer_is<T: Scorer>(self) -> bool {
+    pub fn scorer_is<T>(self) -> bool {
         self.0.as_ref().borrow().is::<T>()
     }
 }
 
-impl Scorer for RcRefCellScorer {
+impl<TScorer: Scorer> Scorer for RcRefCellScorer<TScorer> {
     fn score(&mut self) -> Score {
         self.0.as_ref().borrow_mut().score()
     }
@@ -124,7 +124,7 @@ impl Scorer for RcRefCellScorer {
     }
 }
 
-impl DocSet for RcRefCellScorer {
+impl<TScorer: Scorer + Sized> DocSet for RcRefCellScorer<TScorer> {
     fn advance(&mut self) -> DocId {
         self.0.as_ref().borrow_mut().advance()
     }

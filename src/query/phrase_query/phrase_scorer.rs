@@ -3,9 +3,10 @@ use crate::fieldnorm::FieldNormReader;
 use crate::postings::Postings;
 use crate::query::bm25::BM25Weight;
 use crate::query::twophase::TwoPhase;
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::{Intersection, Scorer};
 use crate::DocId;
-use crate::Score;
+//use crate::Score;
 
 use std::cell::RefCell;
 use std::cmp::Ordering;
@@ -235,11 +236,7 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
 
 pub struct RcRefCellPhraseScorer<TPostings: Postings>(Rc<RefCell<PhraseScorer<TPostings>>>);
 
-impl<TPostings: Postings> RcRefCellPhraseScorer<TPostings> {
-    pub fn new(phrase_scorer: PhraseScorer<TPostings>) -> Self {
-        RcRefCellPhraseScorer(Rc::new(RefCell::new(phrase_scorer)))
-    }
-
+impl<TPostings: Postings> RcRefCellScorer<PhraseScorer<TPostings>> {
     pub fn phrase_count(&mut self) -> u32 {
         self.0.borrow_mut().phrase_count()
     }
@@ -308,29 +305,18 @@ impl<TPostings: Postings> TwoPhase for PhraseTwoPhase<TPostings> {
     }
 }
 
-impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
+impl<TPostings: Postings> Scorer for RcRefCellScorer<PhraseScorer<TPostings>> {
     fn score(&mut self) -> f32 {
         let doc = self.doc();
-        dbg!("PhraseScorer score");
+        dbg!("RcRefCellScorer PhraseScorer score");
         dbg!(doc);
         let fieldnorm_id = self.fieldnorm_reader.fieldnorm_id(doc);
         self.similarity_weight
             .score(fieldnorm_id, self.phrase_count)
     }
     
-    // CHECKME: implement two_phase() here, but how to do that without an RcRefCell to clone()?
-    // Probably need generics over Scorer.
-}
-
-impl<TPostings: Postings> Scorer for RcRefCellPhraseScorer<TPostings> {
-    fn score(&mut self) -> Score {
-        dbg!("RcRefCellPhraseScorer score");
-        dbg!(self.0.borrow().doc());
-        self.0.borrow_mut().score()
-    }
-
     fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
-        dbg!("RcRefCellPhraseScorer two_phase");
+        dbg!("RcRefCellScorer PhraseScorer two_phase");
         let ptp = PhraseTwoPhase::<TPostings>::new(Rc::clone(&self.0));
         Some(Box::new(ptp))
     }
