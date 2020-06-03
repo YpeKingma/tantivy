@@ -108,6 +108,10 @@ impl<TScorer: Scorer> RcRefCellScorer<TScorer> {
     pub fn scorer_is<T>(self) -> bool {
         self.0.as_ref().borrow().is::<T>()
     }
+
+    pub fn borrow_mut(&mut self) -> &mut TScorer {
+        self.0.as_ref().borrow_mut()
+    }
 }
 
 //impl<TScorer: Scorer> Scorer for RcRefCellScorer<TScorer> {
