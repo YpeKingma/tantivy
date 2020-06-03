@@ -35,7 +35,7 @@ impl Query for EmptyQuery {
 /// It is useful for tests and handling edge cases.
 pub struct EmptyWeight;
 impl Weight for EmptyWeight {
-    fn scorer(&self, _reader: &SegmentReader, _boost: f32) -> crate::Result<RcRefCellScorer<EmptyScorer>> {
+    fn scorer(&self, _reader: &SegmentReader, _boost: f32) -> crate::Result<RcRefCellScorer> {
         Ok(RcRefCellScorer::new(EmptyScorer))
     }
 

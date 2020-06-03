@@ -66,7 +66,7 @@ impl BoostWeight {
 }
 
 impl Weight for BoostWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<RcRefCellScorer<dyn Scorer>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<RcRefCellScorer> {
         self.weight.scorer(reader, boost * self.boost)
     }
 

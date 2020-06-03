@@ -2,7 +2,6 @@ use crate::docset::{DocSet, TERMINATED};
 use crate::fieldnorm::FieldNormReader;
 use crate::postings::Postings;
 use crate::query::bm25::BM25Weight;
-use crate::query::scorer::RcRefCellScorer;
 use crate::query::twophase::TwoPhase;
 use crate::query::{Intersection, Scorer};
 use crate::DocId;
@@ -142,7 +141,7 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
         similarity_weight: BM25Weight,
         fieldnorm_reader: FieldNormReader,
         score_needed: bool,
-    ) -> RcRefCellScorer<PhraseScorer<TPostings>> {
+    ) -> PhraseScorer<TPostings> {
         let max_offset = term_postings
             .iter()
             .map(|&(offset, _)| offset)
@@ -168,7 +167,7 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
         if scorer.doc() != TERMINATED && !scorer.phrase_match() {
             scorer.advance();
         }
-        RcRefCellScorer::new(scorer)
+        scorer
     }
 
     pub fn phrase_count(&self) -> u32 {
@@ -236,15 +235,15 @@ impl<TPostings: Postings> PhraseScorer<TPostings> {
 
 pub struct RcRefCellPhraseScorer<TPostings: Postings>(Rc<RefCell<PhraseScorer<TPostings>>>);
 
-// impl<TPostings: Postings> RcRefCellPhraseScorer<TPostings> {
-//     pub fn new(phrase_scorer: PhraseScorer<TPostings>) -> Self {
-//         RcRefCellPhraseScorer(Rc::new(RefCell::new(phrase_scorer)))
-//     }
-//
-//     pub fn phrase_count(&mut self) -> u32 {
-//         self.0.borrow_mut().phrase_count()
-//     }
-// }
+impl<TPostings: Postings> RcRefCellPhraseScorer<TPostings> {
+    pub fn new(phrase_scorer: PhraseScorer<TPostings>) -> Self {
+        RcRefCellPhraseScorer(Rc::new(RefCell::new(phrase_scorer)))
+    }
+
+    pub fn phrase_count(&mut self) -> u32 {
+        self.0.borrow_mut().phrase_count()
+    }
+}
 
 impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     // this is the approximating DocSet because TwoPhase is also implemented.
@@ -318,7 +317,7 @@ impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
         self.similarity_weight
             .score(fieldnorm_id, self.phrase_count)
     }
-
+    
     // CHECKME: implement two_phase() here, but how to do that without an RcRefCell to clone()?
     // Probably need generics over Scorer.
 }

@@ -43,7 +43,7 @@ impl<A> Weight for AutomatonWeight<A>
 where
     A: Automaton + Send + Sync + 'static,
 {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer<ConstScorer<dyn DocSet>>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer> {
         let max_doc = reader.max_doc();
         let mut doc_bitset = BitSet::with_max_value(max_doc);
 
