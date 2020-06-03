@@ -2,8 +2,8 @@ use crate::docset::{DocSet, TERMINATED};
 use crate::fieldnorm::FieldNormReader;
 use crate::postings::Postings;
 use crate::query::bm25::BM25Weight;
-use crate::query::twophase::TwoPhase;
 use crate::query::scorer::RcRefCellScorer;
+use crate::query::twophase::TwoPhase;
 use crate::query::{Intersection, Scorer};
 use crate::DocId;
 //use crate::Score;
@@ -242,6 +242,29 @@ impl<TPostings: Postings> RcRefCellScorer<PhraseScorer<TPostings>> {
     }
 }
 
+impl<TPostings: Postings> Scorer for PhraseScorer<TPostings> {
+    fn score(&mut self) -> f32 {
+        let doc = self.doc();
+        dbg!("PhraseScorer score");
+        dbg!(doc);
+        let fieldnorm_id = self.fieldnorm_reader.fieldnorm_id(doc);
+        self.similarity_weight
+            .score(fieldnorm_id, self.phrase_count)
+    }
+}
+
+impl<TPostings: Postings> Scorer for RcRefCellScorer<PhraseScorer<TPostings>> {
+    fn score(&mut self) -> f32 {
+        self.0.as_ref().borrow_mut().score()
+    }
+
+    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+        dbg!("PhraseScorer two_phase");
+        let ptp = PhraseTwoPhase::<TPostings>::new(Rc::clone(&self.0));
+        Some(Box::new(ptp))
+    }
+}
+
 impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     // this is the approximating DocSet because TwoPhase is also implemented.
     fn advance(&mut self) -> DocId {
@@ -265,7 +288,7 @@ impl<TPostings: Postings> DocSet for PhraseScorer<TPostings> {
     }
 }
 
-impl<TPostings: Postings> DocSet for RcRefCellPhraseScorer<TPostings> {
+impl<TPostings: Postings> DocSet for RcRefCellScorer<PhraseScorer<TPostings>> {
     // this is the approximating DocSet because TwoPhase is also implemented.
     fn advance(&mut self) -> DocId {
         self.0.borrow_mut().advance()
@@ -302,23 +325,6 @@ impl<TPostings: Postings> TwoPhase for PhraseTwoPhase<TPostings> {
 
     fn matches(&mut self) -> bool {
         self.phrase_scorer.borrow_mut().phrase_match()
-    }
-}
-
-impl<TPostings: Postings> Scorer for RcRefCellScorer<PhraseScorer<TPostings>> {
-    fn score(&mut self) -> f32 {
-        let doc = self.doc();
-        dbg!("RcRefCellScorer PhraseScorer score");
-        dbg!(doc);
-        let fieldnorm_id = self.fieldnorm_reader.fieldnorm_id(doc);
-        self.similarity_weight
-            .score(fieldnorm_id, self.phrase_count)
-    }
-    
-    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
-        dbg!("RcRefCellScorer PhraseScorer two_phase");
-        let ptp = PhraseTwoPhase::<TPostings>::new(Rc::clone(&self.0));
-        Some(Box::new(ptp))
     }
 }
 

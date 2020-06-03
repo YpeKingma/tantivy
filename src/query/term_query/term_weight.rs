@@ -19,7 +19,11 @@ pub struct TermWeight {
 }
 
 impl Weight for TermWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<RcRefCellScorer<Box<dyn Scorer>>> {
+    fn scorer(
+        &self,
+        reader: &SegmentReader,
+        boost: f32,
+    ) -> Result<RcRefCellScorer<Box<dyn Scorer>>> {
         let term_scorer = self.scorer_specialized(reader, boost)?;
         Ok(RcRefCellScorer::new(term_scorer))
     }

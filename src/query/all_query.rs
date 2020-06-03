@@ -24,7 +24,11 @@ impl Query for AllQuery {
 pub struct AllWeight;
 
 impl Weight for AllWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<RcRefCellScorer<Box<dyn Scorer>>> {
+    fn scorer(
+        &self,
+        reader: &SegmentReader,
+        boost: f32,
+    ) -> crate::Result<RcRefCellScorer<Box<dyn Scorer>>> {
         let all_scorer = AllScorer {
             doc: 0u32,
             max_doc: reader.max_doc(),

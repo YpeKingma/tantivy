@@ -98,7 +98,7 @@ impl Scorer for Box<dyn Scorer> {
     }
 }
 
-pub struct RcRefCellScorer<TScorer: Scorer> (Rc<RefCell<TScorer>>);
+pub struct RcRefCellScorer<TScorer: Scorer>(Rc<RefCell<TScorer>>);
 
 impl<TScorer: Scorer> RcRefCellScorer<TScorer> {
     pub fn new(scorer: TScorer) -> Self {
@@ -110,33 +110,33 @@ impl<TScorer: Scorer> RcRefCellScorer<TScorer> {
     }
 }
 
-impl<TScorer: Scorer> Scorer for RcRefCellScorer<TScorer> {
-    fn score(&mut self) -> Score {
-        self.0.as_ref().borrow_mut().score()
-    }
+//impl<TScorer: Scorer> Scorer for RcRefCellScorer<TScorer> {
+//    fn score(&mut self) -> Score {
+//        self.0.as_ref().borrow_mut().score()
+//    }
+//
+//    fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
+//        self.0.as_ref().borrow_mut().for_each(callback);
+//    }
+//
+//    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+//        self.0.as_ref().borrow_mut().two_phase()
+//    }
+//}
 
-    fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
-        self.0.as_ref().borrow_mut().for_each(callback);
-    }
-
-    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
-        self.0.as_ref().borrow_mut().two_phase()
-    }
-}
-
-impl<TScorer: Scorer + Sized> DocSet for RcRefCellScorer<TScorer> {
-    fn advance(&mut self) -> DocId {
-        self.0.as_ref().borrow_mut().advance()
-    }
-
-    fn doc(&self) -> DocId {
-        self.0.as_ref().borrow().doc()
-    }
-
-    fn size_hint(&self) -> u32 {
-        self.0.as_ref().borrow().size_hint()
-    }
-}
+//impl<TScorer: Scorer> DocSet for RcRefCellScorer<TScorer> {
+//    fn advance(&mut self) -> DocId {
+//        self.0.as_ref().borrow_mut().advance()
+//    }
+//
+//    fn doc(&self) -> DocId {
+//        self.0.as_ref().borrow().doc()
+//    }
+//
+//    fn size_hint(&self) -> u32 {
+//        self.0.as_ref().borrow().size_hint()
+//    }
+//}
 
 /// Wraps a `DocSet` and simply returns a constant `Scorer`.
 /// The `ConstScorer` is useful if you have a `DocSet` where
