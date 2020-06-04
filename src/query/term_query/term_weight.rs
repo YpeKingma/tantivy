@@ -25,7 +25,7 @@ impl Weight for TermWeight {
         boost: f32,
     ) -> Result<RcRefCellScorer<Box<dyn Scorer>>> {
         let term_scorer = self.scorer_specialized(reader, boost)?;
-        Ok(RcRefCellScorer::new(term_scorer))
+        Ok(RcRefCellScorer::new(Box::new(term_scorer)))
     }
 
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> Result<Explanation> {

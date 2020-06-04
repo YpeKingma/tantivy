@@ -68,9 +68,10 @@ impl BooleanWeight {
         reader: &SegmentReader,
         boost: f32,
     ) -> crate::Result<HashMap<Occur, Vec<RcRefCellScorer<Box<dyn Scorer>>>>> {
-        let mut per_occur_scorers: HashMap<Occur, Vec<RcRefCellScorer>> = HashMap::new();
+        let mut per_occur_scorers: HashMap<Occur, Vec<RcRefCellScorer<Box<dyn Scorer>>>> =
+            HashMap::new();
         for &(ref occur, ref subweight) in &self.weights {
-            let sub_scorer: RcRefCellScorer = subweight.scorer(reader, boost)?;
+            let sub_scorer: RcRefCellScorer<Box<dyn Scorer>> = subweight.scorer(reader, boost)?;
             per_occur_scorers
                 .entry(*occur)
                 .or_insert_with(Vec::new)
@@ -86,41 +87,44 @@ impl BooleanWeight {
     ) -> crate::Result<RcRefCellScorer<Box<dyn Scorer>>> {
         let mut per_occur_scorers = self.per_occur_scorers(reader, boost)?;
 
-        let should_scorer_opt: Option<RcRefCellScorer> = per_occur_scorers
+        let should_scorer_opt: Option<RcRefCellScorer<Box<dyn Scorer>>> = per_occur_scorers
             .remove(&Occur::Should)
             .map(scorer_union::<TScoreCombiner>);
 
-        let exclude_scorer_opt: Option<RcRefCellScorer> = per_occur_scorers
+        let exclude_scorer_opt: Option<RcRefCellScorer<Box<dyn Scorer>>> = per_occur_scorers
             .remove(&Occur::MustNot)
             .map(scorer_union::<TScoreCombiner>);
 
-        let must_scorer_opt: Option<RcRefCellScorer> = per_occur_scorers
+        let must_scorer_opt: Option<RcRefCellScorer<Box<dyn Scorer>>> = per_occur_scorers
             .remove(&Occur::Must)
             .map(intersect_scorers);
 
-        let positive_scorer: RcRefCellScorer = match (should_scorer_opt, must_scorer_opt) {
-            (Some(should_scorer), Some(must_scorer)) => {
-                if self.scoring_enabled {
-                    RcRefCellScorer::new(RequiredOptionalScorer::<_, _, TScoreCombiner>::new(
-                        must_scorer,
-                        should_scorer,
-                    ))
-                } else {
-                    must_scorer
+        let positive_scorer: RcRefCellScorer<Box<dyn Scorer>> =
+            match (should_scorer_opt, must_scorer_opt) {
+                (Some(should_scorer), Some(must_scorer)) => {
+                    if self.scoring_enabled {
+                        RcRefCellScorer::new(Box::new(
+                            RequiredOptionalScorer::<_, _, TScoreCombiner>::new(
+                                must_scorer,
+                                should_scorer,
+                            ),
+                        ))
+                    } else {
+                        must_scorer
+                    }
                 }
-            }
-            (None, Some(must_scorer)) => must_scorer,
-            (Some(should_scorer), None) => should_scorer,
-            (None, None) => {
-                return Ok(RcRefCellScorer::new(EmptyScorer));
-            }
-        };
+                (None, Some(must_scorer)) => must_scorer,
+                (Some(should_scorer), None) => should_scorer,
+                (None, None) => {
+                    return Ok(RcRefCellScorer::new(Box::new(EmptyScorer)));
+                }
+            };
 
         if let Some(exclude_scorer) = exclude_scorer_opt {
-            Ok(RcRefCellScorer::new(Exclude::new(
+            Ok(RcRefCellScorer::new(Box::new(Exclude::new(
                 positive_scorer,
                 exclude_scorer,
-            )))
+            ))))
         } else {
             Ok(positive_scorer)
         }
@@ -134,11 +138,11 @@ impl Weight for BooleanWeight {
         boost: f32,
     ) -> crate::Result<RcRefCellScorer<Box<dyn Scorer>>> {
         if self.weights.is_empty() {
-            Ok(RcRefCellScorer::new(EmptyScorer))
+            Ok(RcRefCellScorer::new(Box::new(EmptyScorer)))
         } else if self.weights.len() == 1 {
             let &(occur, ref weight) = &self.weights[0];
             if occur == Occur::MustNot {
-                Ok(RcRefCellScorer::new(EmptyScorer))
+                Ok(RcRefCellScorer::new(Box::new(EmptyScorer)))
             } else {
                 weight.scorer(reader, boost)
             }

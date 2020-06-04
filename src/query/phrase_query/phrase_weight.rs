@@ -92,9 +92,9 @@ impl Weight for PhraseWeight {
         boost: f32,
     ) -> Result<RcRefCellScorer<Box<dyn Scorer>>> {
         if let Some(scorer) = self.phrase_scorer(reader, boost)? {
-            Ok(RcRefCellScorer::new(scorer))
+            Ok(RcRefCellScorer::new(Box::new(scorer)))
         } else {
-            Ok(RcRefCellScorer::new(EmptyScorer))
+            Ok(RcRefCellScorer::new(Box::new(EmptyScorer)))
         }
     }
 

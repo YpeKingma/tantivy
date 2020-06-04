@@ -316,7 +316,9 @@ impl Weight for RangeWeight {
             }
         }
         let doc_bitset = BitSetDocSet::from(doc_bitset);
-        Ok(RcRefCellScorer::new(ConstScorer::new(doc_bitset, boost)))
+        Ok(RcRefCellScorer::new(Box::new(ConstScorer::new(
+            doc_bitset, boost,
+        ))))
     }
 
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> Result<Explanation> {

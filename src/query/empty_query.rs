@@ -40,7 +40,7 @@ impl Weight for EmptyWeight {
         _reader: &SegmentReader,
         _boost: f32,
     ) -> crate::Result<RcRefCellScorer<Box<dyn Scorer>>> {
-        Ok(RcRefCellScorer::new(EmptyScorer))
+        Ok(RcRefCellScorer::new(Box::new(EmptyScorer)))
     }
 
     fn explain(&self, _reader: &SegmentReader, doc: DocId) -> crate::Result<Explanation> {

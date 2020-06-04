@@ -19,7 +19,7 @@ pub fn intersect_scorers(
     mut scorers: Vec<RcRefCellScorer<Box<dyn Scorer>>>,
 ) -> RcRefCellScorer<Box<dyn Scorer>> {
     if scorers.is_empty() {
-        return RcRefCellScorer::new(EmptyScorer);
+        return RcRefCellScorer::new(Box::new(EmptyScorer));
     }
     if scorers.len() == 1 {
         return scorers.pop().unwrap();
@@ -27,15 +27,15 @@ pub fn intersect_scorers(
     scorers.sort_by_key(|scorer| scorer.size_hint());
     let doc = go_to_first_doc(&mut scorers[..]);
     if doc == TERMINATED {
-        return RcRefCellScorer::new(EmptyScorer);
+        return RcRefCellScorer::new(Box::new(EmptyScorer));
     }
     let left = scorers.remove(0);
     let right = scorers.remove(0);
-    RcRefCellScorer::new(Intersection {
+    RcRefCellScorer::new(Box::new(Intersection {
         left,
         right,
         others: scorers,
-    })
+    }))
 }
 
 fn go_to_first_doc<TDocSet: DocSet>(docsets: &mut [TDocSet]) -> DocId {

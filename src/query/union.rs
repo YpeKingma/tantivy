@@ -1,6 +1,7 @@
 use crate::common::TinySet;
 use crate::docset::{DocSet, TERMINATED};
 use crate::query::score_combiner::{DoNothingCombiner, ScoreCombiner};
+use crate::query::scorer::RcRefCellScorer;
 use crate::query::Scorer;
 use crate::DocId;
 use crate::Score;
@@ -38,12 +39,13 @@ pub struct Union<TScorer, TScoreCombiner = DoNothingCombiner> {
     score: Score,
 }
 
-impl<TScorer, TScoreCombiner> From<Vec<TScorer>> for Union<TScorer, TScoreCombiner>
+impl<TScorer, TScoreCombiner> From<Vec<RcRefCellScorer<Box<dyn Scorer>>>>
+    for Union<TScorer, TScoreCombiner>
 where
     TScoreCombiner: ScoreCombiner,
     TScorer: Scorer,
 {
-    fn from(docsets: Vec<TScorer>) -> Union<TScorer, TScoreCombiner> {
+    fn from(docsets: Vec<RcRefCellScorer<Box<dyn Scorer>>>) -> Union<TScorer, TScoreCombiner> {
         let non_empty_docsets: Vec<TScorer> = docsets
             .into_iter()
             .filter(|docset| docset.doc() != TERMINATED)
