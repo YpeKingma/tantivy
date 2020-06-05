@@ -108,43 +108,61 @@ impl<TScorer: Scorer> RcRefCellScorer<TScorer> {
     pub fn scorer_is<T>(self) -> bool {
         self.0.as_ref().borrow().is::<T>()
     }
+}
 
-    pub fn borrow_mut(&mut self) -> &mut TScorer {
-        self.0.as_ref().borrow_mut()
+/// Provides Scorer methods by using a borrowed scorer
+pub trait BorrowScorer<TScorer: Scorer>: Scorer {
+
+    fn scorer_borrow(&self) -> &TScorer; // Implement by self.0.as_ref().borrow() on RcRefCellScorer
+
+    fn scorer_borrow_mut(&mut self) -> &mut TScorer; // Similarly by self.0.as_ref().borrow_mut()
+
+    fn scorer_borrow_tomut(&self) -> &mut TScorer {
+        self.scorer_borrow_mut()
     }
 
-    pub fn seek(&mut self, doc: DocId) -> DocId {
-        self.borrow_mut().seek(doc)
+    fn score(&mut self) -> Score {
+        self.scorer_borrow_mut().score()
+    }
+
+    fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
+        self.scorer_borrow_mut().for_each(callback)
+    }
+
+    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
+        self.scorer_borrow_mut().two_phase()
+    }
+
+    fn doc(&self) -> DocId {
+        self.scorer_borrow().doc()
+    }
+
+    fn size_hint(&self) -> u32 {
+        self.scorer_borrow().size_hint()
+    }
+
+    fn advance(&mut self) -> DocId {
+        self.scorer_borrow_mut().advance()
+    }
+
+    fn seek(&mut self, doc: DocId) -> DocId {
+        self.scorer_borrow_mut().seek(doc)
     }
 }
 
-//impl<TScorer: Scorer> Scorer for RcRefCellScorer<TScorer> {
-//    fn score(&mut self) -> Score {
-//        self.0.as_ref().borrow_mut().score()
-//    }
-//
-//    fn for_each(&mut self, callback: &mut dyn FnMut(DocId, Score)) {
-//        self.0.as_ref().borrow_mut().for_each(callback);
-//    }
-//
-//    fn two_phase(&mut self) -> Option<Box<dyn TwoPhase>> {
-//        self.0.as_ref().borrow_mut().two_phase()
-//    }
-//}
+/// Provide scorer borrow functions of BorrowScorer for RcRefCellScorer(scorer_type)
+macro_rules! impl_scorer_rc_borrow {
+    ($scorer_type:ident) => {
+        fn scorer_borrow(&self) -> &$scorer_type {
+            self.0.as_ref().borrow()
+        }
 
-//impl<TScorer: Scorer> DocSet for RcRefCellScorer<TScorer> {
-//    fn advance(&mut self) -> DocId {
-//        self.0.as_ref().borrow_mut().advance()
-//    }
-//
-//    fn doc(&self) -> DocId {
-//        self.0.as_ref().borrow().doc()
-//    }
-//
-//    fn size_hint(&self) -> u32 {
-//        self.0.as_ref().borrow().size_hint()
-//    }
-//}
+        fn scorer_borrow_mut(&mut self) -> &mut $scorer_type {
+            self.0.as_ref().borrow_mut()
+        }
+    }
+}
+
 
 /// Wraps a `DocSet` and simply returns a constant `Scorer`.
 /// The `ConstScorer` is useful if you have a `DocSet` where
