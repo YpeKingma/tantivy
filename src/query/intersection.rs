@@ -37,12 +37,10 @@ pub fn intersect_scorers(mut scorers: Vec<Rc<RefCell<dyn Scorer>>>) -> Rc<RefCel
     if all_term_scorers {
         return Rc::new(RefCell::new(Intersection {
             left: *((*left.as_ref().borrow().deref())
-                .downcast::<TermScorer>() // FIXME: method not found in dyn Scorer, but Scorer extends downcast_rs::DownCast.
-                .map_err(|_| ())
+                .downcast_ref::<TermScorer>()
                 .unwrap()),
             right: *((*right.as_ref().borrow().deref())
-                .downcast::<TermScorer>()
-                .map_err(|_| ())
+                .downcast_ref::<TermScorer>()
                 .unwrap()),
             others: scorers,
         }));

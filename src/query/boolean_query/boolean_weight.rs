@@ -43,10 +43,8 @@ where
             let scorers: Vec<TermScorer> = scorers
                 .into_iter()
                 .map(|scorer| {
-                    // *((*scorer.as_ref().borrow().deref() as dyn downcast_rs::Downcast) also fails, needs Sized.
                     *((*scorer.as_ref().borrow().deref())
-                        .downcast::<TermScorer>() // FIXME: method not found in dyn Scorer, but Scorer extends downcast_rs::Downcast
-                        .map_err(|_| ())
+                        .downcast_ref::<TermScorer>()
                         .unwrap())
                 })
                 .collect();
