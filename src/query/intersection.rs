@@ -1,11 +1,11 @@
 use crate::docset::{DocSet, TERMINATED};
-use crate::query::term_query::TermScorer;
+//use crate::query::term_query::TermScorer;
 use crate::query::EmptyScorer;
 use crate::query::Scorer;
 use crate::DocId;
 use crate::Score;
 use std::cell::RefCell;
-use std::ops::Deref;
+//use std::ops::Deref;
 use std::rc::Rc;
 
 /// Returns the intersection scorer.
@@ -31,22 +31,22 @@ pub fn intersect_scorers(mut scorers: Vec<Rc<RefCell<dyn Scorer>>>) -> Rc<RefCel
     // We know that we have at least 2 elements.
     let left = scorers.remove(0);
     let right = scorers.remove(0);
-    let all_term_scorers = [&left, &right]
-        .iter()
-        .all(|&scorer| scorer.as_ref().borrow().deref().is::<TermScorer>());
-    if all_term_scorers {
-        return Rc::new(RefCell::new(Intersection {
-            left: *((*left.as_ref().borrow().deref())
-                .downcast::<TermScorer>() // FIXME: method not found in dyn Scorer, but Scorer extends downcast_rs::DownCast.
-                .map_err(|_| ())
-                .unwrap()),
-            right: *((*right.as_ref().borrow().deref())
-                .downcast::<TermScorer>()
-                .map_err(|_| ())
-                .unwrap()),
-            others: scorers,
-        }));
-    }
+    // let all_term_scorers = [&left, &right]
+    //     .iter()
+    //     .all(|&scorer| scorer.as_ref().borrow().deref().is::<TermScorer>());
+    // if all_term_scorers {
+    //     return Rc::new(RefCell::new(Intersection {
+    //         left: *((*left.as_ref().borrow().deref())
+    //             .downcast::<TermScorer>() // FIXME: method not found in dyn Scorer, but Scorer extends downcast_rs::DownCast.
+    //             .map_err(|_| ())
+    //             .unwrap()),
+    //         right: *((*right.as_ref().borrow().deref())
+    //             .downcast::<TermScorer>()
+    //             .map_err(|_| ())
+    //             .unwrap()),
+    //         others: scorers,
+    //     }));
+    // }
     Rc::new(RefCell::new(Intersection {
         left,
         right,

@@ -15,7 +15,7 @@ use crate::query::{intersect_scorers, Explanation};
 use crate::{DocId, Score};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ops::Deref;
+//use std::ops::Deref;
 use std::ops::DerefMut;
 use std::rc::Rc;
 
@@ -35,26 +35,26 @@ where
         return SpecializedScorer::Other(scorers.into_iter().next().unwrap()); //< we checked the size beforehands
     }
 
-    {
-        let is_all_term_queries = scorers
-            .iter()
-            .all(|scorer| scorer.as_ref().borrow().is::<TermScorer>());
-        if is_all_term_queries {
-            let scorers: Vec<TermScorer> = scorers
-                .into_iter()
-                .map(|scorer| {
-                    // *((*scorer.as_ref().borrow().deref() as dyn downcast_rs::Downcast) also fails, needs Sized.
-                    *((*scorer.as_ref().borrow().deref())
-                        .downcast::<TermScorer>() // FIXME: method not found in dyn Scorer, but Scorer extends downcast_rs::Downcast
-                        .map_err(|_| ())
-                        .unwrap())
-                })
-                .collect();
-            return SpecializedScorer::TermUnion(Union::<TermScorer, TScoreCombiner>::from(
-                scorers,
-            ));
-        }
-    }
+    // {
+    //     let is_all_term_queries = scorers
+    //         .iter()
+    //         .all(|scorer| scorer.as_ref().borrow().is::<TermScorer>());
+    //     if is_all_term_queries {
+    //         let scorers: Vec<TermScorer> = scorers
+    //             .into_iter()
+    //             .map(|scorer| {
+    //                 // *((*scorer.as_ref().borrow().deref() as dyn downcast_rs::Downcast) also fails, needs Sized.
+    //                 *((*scorer.as_ref().borrow().deref())
+    //                     .downcast::<TermScorer>() // FIXME: method not found in dyn Scorer, but Scorer extends downcast_rs::Downcast
+    //                     .map_err(|_| ())
+    //                     .unwrap())
+    //             })
+    //             .collect();
+    //         return SpecializedScorer::TermUnion(Union::<TermScorer, TScoreCombiner>::from(
+    //             scorers,
+    //         ));
+    //     }
+    // }
     SpecializedScorer::Other(Rc::new(RefCell::new(Union::<_, TScoreCombiner>::from(
         scorers,
     ))))
