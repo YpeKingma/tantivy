@@ -1,4 +1,5 @@
 use crate::docset::DocSet;
+use crate::fastfield::DeleteBitSet;
 use crate::DocId;
 use crate::Score;
 use downcast_rs::impl_downcast;
@@ -45,6 +46,10 @@ impl DocSet for Rc<RefCell<dyn Scorer>> {
 
     fn size_hint(&self) -> u32 {
         self.as_ref().borrow().size_hint()
+    }
+
+    fn count(&mut self, delete_bitset: &DeleteBitSet) -> u32 {
+        self.as_ref().borrow().count(delete_bitset)
     }
 }
 

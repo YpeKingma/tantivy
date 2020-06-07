@@ -1,8 +1,10 @@
 use super::Scorer;
 use crate::core::SegmentReader;
+use crate::docset::DocSet;
 use crate::query::Explanation;
 use crate::{DocId, Score, TERMINATED};
 use std::cell::RefCell;
+use std::ops::DerefMut;
 use std::rc::Rc;
 
 /// Iterates through all of the document matched by the DocSet
@@ -76,7 +78,7 @@ pub trait Weight: Send + Sync + 'static {
         callback: &mut dyn FnMut(DocId, Score),
     ) -> crate::Result<()> {
         let mut scorer = self.scorer(reader, 1.0f32)?;
-        for_each_scorer(scorer.as_mut(), callback);
+        for_each_scorer(scorer.as_ref().borrow_mut().deref_mut(), callback);
         Ok(())
     }
 
@@ -97,7 +99,11 @@ pub trait Weight: Send + Sync + 'static {
         callback: &mut dyn FnMut(DocId, Score) -> Score,
     ) -> crate::Result<()> {
         let mut scorer = self.scorer(reader, 1.0f32)?;
-        for_each_pruning_scorer(scorer.as_mut(), threshold, callback);
+        for_each_pruning_scorer(
+            scorer.as_ref().borrow_mut().deref_mut(),
+            threshold,
+            callback,
+        );
         Ok(())
     }
 }

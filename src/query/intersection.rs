@@ -5,6 +5,7 @@ use crate::query::Scorer;
 use crate::DocId;
 use crate::Score;
 use std::cell::RefCell;
+use std::ops::Deref;
 use std::rc::Rc;
 
 /// Returns the intersection scorer.
@@ -25,20 +26,26 @@ pub fn intersect_scorers(mut scorers: Vec<Rc<RefCell<dyn Scorer>>>) -> Rc<RefCel
     scorers.sort_by_key(|scorer| scorer.size_hint());
     let doc = go_to_first_doc(&mut scorers[..]);
     if doc == TERMINATED {
-        return Box::new(EmptyScorer);
+        return Rc::new(RefCell::new(EmptyScorer));
     }
     // We know that we have at least 2 elements.
     let left = scorers.remove(0);
     let right = scorers.remove(0);
     let all_term_scorers = [&left, &right]
         .iter()
-        .all(|&scorer| scorer.is::<TermScorer>());
+        .all(|&scorer| scorer.as_ref().borrow().deref().is::<TermScorer>());
     if all_term_scorers {
-        return Box::new(Intersection {
-            left: *(left.downcast::<TermScorer>().map_err(|_| ()).unwrap()),
-            right: *(right.downcast::<TermScorer>().map_err(|_| ()).unwrap()),
+        return Rc::new(RefCell::new(Intersection {
+            left: *((*left.as_ref().borrow().deref())
+                .downcast::<TermScorer>()
+                .map_err(|_| ())
+                .unwrap()),
+            right: *((*right.as_ref().borrow().deref())
+                .downcast::<TermScorer>()
+                .map_err(|_| ())
+                .unwrap()),
             others: scorers,
-        });
+        }));
     }
     Rc::new(RefCell::new(Intersection {
         left,

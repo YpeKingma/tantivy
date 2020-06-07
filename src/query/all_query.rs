@@ -75,7 +75,9 @@ impl Scorer for AllScorer {
 #[cfg(test)]
 mod tests {
     use super::AllQuery;
+    use crate::docset::DocSet;
     use crate::docset::TERMINATED;
+    use crate::query::scorer::Scorer;
     use crate::query::Query;
     use crate::schema::{Schema, TEXT};
     use crate::Index;

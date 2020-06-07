@@ -1,6 +1,7 @@
 use crate::common::BitSet;
 use crate::core::Searcher;
 use crate::core::SegmentReader;
+use crate::docset::DocSet;
 use crate::error::TantivyError;
 use crate::query::explanation::does_not_match;
 use crate::query::ConstScorer;
@@ -312,7 +313,7 @@ impl Weight for RangeWeight {
             }
         }
         let doc_bitset = BitSetDocSet::from(doc_bitset);
-        Ok(Box::new(ConstScorer::new(doc_bitset, boost)))
+        Ok(Rc::new(RefCell::new(ConstScorer::new(doc_bitset, boost))))
     }
 
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> Result<Explanation> {

@@ -89,9 +89,9 @@ impl PhraseWeight {
 impl Weight for PhraseWeight {
     fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<Rc<RefCell<dyn Scorer>>> {
         if let Some(scorer) = self.phrase_scorer(reader, boost)? {
-            Ok(Box::new(scorer))
+            Ok(Rc::new(RefCell::new(scorer)))
         } else {
-            Ok(Box::new(EmptyScorer))
+            Ok(Rc::new(RefCell::new(EmptyScorer)))
         }
     }
 
