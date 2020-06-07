@@ -8,6 +8,7 @@ mod tests {
 
     use super::*;
     use crate::collector::tests::TEST_COLLECTOR_WITH_SCORE;
+    use crate::docset::DocSet;
     use crate::query::score_combiner::SumWithCoordsCombiner;
     use crate::query::term_query::TermScorer;
     use crate::query::Intersection;
@@ -21,6 +22,9 @@ mod tests {
     use crate::tests::assert_nearly_equals;
     use crate::Index;
     use crate::{DocAddress, DocId};
+    use std::cell::RefCell;
+    use std::ops::Deref;
+    use std::rc::Rc;
 
     fn aux_test_helper() -> (Index, Field) {
         let mut schema_builder = Schema::builder();
@@ -61,7 +65,7 @@ mod tests {
         let scorer = weight
             .scorer(searcher.segment_reader(0u32), 1.0f32)
             .unwrap();
-        assert!(scorer.is::<TermScorer>());
+        assert!(scorer.as_ref().borrow().deref().is::<TermScorer>());
     }
 
     #[test]
@@ -75,7 +79,11 @@ mod tests {
             let scorer = weight
                 .scorer(searcher.segment_reader(0u32), 1.0f32)
                 .unwrap();
-            assert!(scorer.is::<Intersection<TermScorer>>());
+            assert!(scorer
+                .as_ref()
+                .borrow()
+                .deref()
+                .is::<Intersection<TermScorer>>());
         }
         {
             let query = query_parser.parse_query("+a +(b c)").unwrap();
@@ -83,7 +91,11 @@ mod tests {
             let scorer = weight
                 .scorer(searcher.segment_reader(0u32), 1.0f32)
                 .unwrap();
-            assert!(scorer.is::<Intersection<Box<dyn Scorer>>>());
+            assert!(scorer
+                .as_ref()
+                .borrow()
+                .deref()
+                .is::<Intersection<Box<dyn Scorer>>>());
         }
     }
 
@@ -98,11 +110,15 @@ mod tests {
             let scorer = weight
                 .scorer(searcher.segment_reader(0u32), 1.0f32)
                 .unwrap();
-            assert!(scorer.is::<RequiredOptionalScorer<
-                Box<dyn Scorer>,
-                Box<dyn Scorer>,
-                SumWithCoordsCombiner,
-            >>());
+            assert!(scorer
+                .as_ref()
+                .borrow()
+                .deref()
+                .is::<RequiredOptionalScorer<
+                    Rc<RefCell<dyn Scorer>>,
+                    Rc<RefCell<dyn Scorer>>,
+                    SumWithCoordsCombiner,
+                >>());
         }
         {
             let query = query_parser.parse_query("+a b").unwrap();
@@ -110,7 +126,7 @@ mod tests {
             let scorer = weight
                 .scorer(searcher.segment_reader(0u32), 1.0f32)
                 .unwrap();
-            assert!(scorer.is::<TermScorer>());
+            assert!(scorer.as_ref().borrow().deref().is::<TermScorer>());
         }
     }
 

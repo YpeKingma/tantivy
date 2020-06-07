@@ -83,7 +83,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::AutomatonWeight;
+    use crate::docset::DocSet;
     use crate::docset::TERMINATED;
+    use crate::query::scorer::Scorer;
     use crate::query::Weight;
     use crate::schema::{Schema, STRING};
     use crate::Index;
