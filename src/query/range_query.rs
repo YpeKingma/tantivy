@@ -11,8 +11,10 @@ use crate::schema::{Field, IndexRecordOption, Term};
 use crate::termdict::{TermDictionary, TermStreamer};
 use crate::DocId;
 use crate::Result;
+use std::cell::RefCell;
 use std::collections::Bound;
 use std::ops::Range;
+use std::rc::Rc;
 
 fn map_bound<TFrom, TTo, Transform: Fn(&TFrom) -> TTo>(
     bound: &Bound<TFrom>,
@@ -289,7 +291,7 @@ impl RangeWeight {
 }
 
 impl Weight for RangeWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<Box<dyn Scorer>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<Rc<RefCell<dyn Scorer>>> {
         let max_doc = reader.max_doc();
         let mut doc_bitset = BitSet::with_max_value(max_doc);
 

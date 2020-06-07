@@ -2,6 +2,8 @@ use super::Scorer;
 use crate::core::SegmentReader;
 use crate::query::Explanation;
 use crate::{DocId, Score, TERMINATED};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 /// Iterates through all of the document matched by the DocSet
 /// `DocSet` and push the scored documents to the collector.
@@ -51,7 +53,7 @@ pub trait Weight: Send + Sync + 'static {
     /// `boost` is a multiplier to apply to the score.
     ///
     /// See [`Query`](./trait.Query.html).
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<Box<dyn Scorer>>;
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<Rc<RefCell<dyn Scorer>>>;
 
     /// Returns an `Explanation` for the given document.
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> crate::Result<Explanation>;

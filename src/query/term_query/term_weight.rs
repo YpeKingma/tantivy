@@ -11,6 +11,8 @@ use crate::schema::IndexRecordOption;
 use crate::Result;
 use crate::Term;
 use crate::{DocId, Score};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 pub struct TermWeight {
     term: Term,
@@ -19,7 +21,7 @@ pub struct TermWeight {
 }
 
 impl Weight for TermWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<Box<dyn Scorer>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<Rc<RefCell<dyn Scorer>>> {
         let term_scorer = self.scorer_specialized(reader, boost)?;
         Ok(Box::new(term_scorer))
     }

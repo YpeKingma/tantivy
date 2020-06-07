@@ -4,6 +4,8 @@ use crate::query::EmptyScorer;
 use crate::query::Scorer;
 use crate::DocId;
 use crate::Score;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 /// Returns the intersection scorer.
 ///
@@ -13,9 +15,9 @@ use crate::Score;
 /// For better performance, the function uses a
 /// specialized implementation if the two
 /// shortest scorers are `TermScorer`s.
-pub fn intersect_scorers(mut scorers: Vec<Box<dyn Scorer>>) -> Box<dyn Scorer> {
+pub fn intersect_scorers(mut scorers: Vec<Rc<RefCell<dyn Scorer>>>) -> Rc<RefCell<dyn Scorer>> {
     if scorers.is_empty() {
-        return Box::new(EmptyScorer);
+        return Rc::new(RefCell::new(EmptyScorer));
     }
     if scorers.len() == 1 {
         return scorers.pop().unwrap();
@@ -38,11 +40,11 @@ pub fn intersect_scorers(mut scorers: Vec<Box<dyn Scorer>>) -> Box<dyn Scorer> {
             others: scorers,
         });
     }
-    Box::new(Intersection {
+    Rc::new(RefCell::new(Intersection {
         left,
         right,
         others: scorers,
-    })
+    }))
 }
 
 /// Creates a `DocSet` that iterate through the intersection of two or more `DocSet`s.

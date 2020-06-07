@@ -1,5 +1,6 @@
 use crate::common::BitSet;
 use crate::core::SegmentReader;
+use crate::docset::DocSet;
 use crate::query::ConstScorer;
 use crate::query::{BitSetDocSet, Explanation};
 use crate::query::{Scorer, Weight};
@@ -8,6 +9,8 @@ use crate::termdict::{TermDictionary, TermStreamer};
 use crate::DocId;
 use crate::Result;
 use crate::TantivyError;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::Arc;
 use tantivy_fst::Automaton;
 
@@ -40,7 +43,7 @@ impl<A> Weight for AutomatonWeight<A>
 where
     A: Automaton + Send + Sync + 'static,
 {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<Box<dyn Scorer>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> Result<Rc<RefCell<dyn Scorer>>> {
         let max_doc = reader.max_doc();
         let mut doc_bitset = BitSet::with_max_value(max_doc);
 
@@ -62,7 +65,7 @@ where
         }
         let doc_bitset = BitSetDocSet::from(doc_bitset);
         let const_scorer = ConstScorer::new(doc_bitset, boost);
-        Ok(Box::new(const_scorer))
+        Ok(Rc::new(RefCell::new(const_scorer)))
     }
 
     fn explain(&self, reader: &SegmentReader, doc: DocId) -> Result<Explanation> {

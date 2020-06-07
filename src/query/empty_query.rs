@@ -8,6 +8,8 @@ use crate::DocSet;
 use crate::Score;
 use crate::Searcher;
 use crate::SegmentReader;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 /// `EmptyQuery` is a dummy `Query` in which no document matches.
 ///
@@ -34,7 +36,11 @@ impl Query for EmptyQuery {
 /// It is useful for tests and handling edge cases.
 pub struct EmptyWeight;
 impl Weight for EmptyWeight {
-    fn scorer(&self, _reader: &SegmentReader, _boost: f32) -> crate::Result<Box<dyn Scorer>> {
+    fn scorer(
+        &self,
+        _reader: &SegmentReader,
+        _boost: f32,
+    ) -> crate::Result<Rc<RefCell<dyn Scorer>>> {
         Ok(Box::new(EmptyScorer))
     }
 

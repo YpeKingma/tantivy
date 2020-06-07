@@ -2,8 +2,10 @@ use crate::fastfield::DeleteBitSet;
 use crate::query::explanation::does_not_match;
 use crate::query::{Explanation, Query, Scorer, Weight};
 use crate::{DocId, DocSet, Searcher, SegmentReader, Term};
+use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::fmt;
+use std::rc::Rc;
 
 /// `BoostQuery` is a wrapper over a query used to boost its score.
 ///
@@ -65,7 +67,7 @@ impl BoostWeight {
 }
 
 impl Weight for BoostWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<Box<dyn Scorer>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<Rc<RefCell<dyn Scorer>>> {
         self.weight.scorer(reader, boost * self.boost)
     }
 

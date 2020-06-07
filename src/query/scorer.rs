@@ -2,7 +2,9 @@ use crate::docset::DocSet;
 use crate::DocId;
 use crate::Score;
 use downcast_rs::impl_downcast;
+use std::cell::RefCell;
 use std::ops::DerefMut;
+use std::rc::Rc;
 
 /// Scored set of documents matching a query within a specific segment.
 ///
@@ -19,6 +21,30 @@ impl_downcast!(Scorer);
 impl Scorer for Box<dyn Scorer> {
     fn score(&mut self) -> Score {
         self.deref_mut().score()
+    }
+}
+
+impl Scorer for Rc<RefCell<dyn Scorer>> {
+    fn score(&mut self) -> Score {
+        self.as_ref().borrow_mut().score()
+    }
+}
+
+impl DocSet for Rc<RefCell<dyn Scorer>> {
+    fn advance(&mut self) -> DocId {
+        self.as_ref().borrow_mut().advance()
+    }
+
+    fn seek(&mut self, target: DocId) -> DocId {
+        self.as_ref().borrow_mut().seek(target)
+    }
+
+    fn doc(&self) -> DocId {
+        self.as_ref().borrow().doc()
+    }
+
+    fn size_hint(&self) -> u32 {
+        self.as_ref().borrow().size_hint()
     }
 }
 

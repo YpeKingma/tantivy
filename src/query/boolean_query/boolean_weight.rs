@@ -1,4 +1,5 @@
 use crate::core::SegmentReader;
+use crate::docset::DocSet;
 use crate::query::explanation::does_not_match;
 use crate::query::score_combiner::{DoNothingCombiner, ScoreCombiner, SumWithCoordsCombiner};
 use crate::query::term_query::TermScorer;
@@ -12,14 +13,20 @@ use crate::query::Union;
 use crate::query::Weight;
 use crate::query::{intersect_scorers, Explanation};
 use crate::{DocId, Score};
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::ops::Deref;
+use std::ops::DerefMut;
+use std::rc::Rc;
 
 enum SpecializedScorer<TScoreCombiner: ScoreCombiner> {
     TermUnion(Union<TermScorer, TScoreCombiner>),
-    Other(Box<dyn Scorer>),
+    Other(Rc<RefCell<dyn Scorer>>),
 }
 
-fn scorer_union<TScoreCombiner>(scorers: Vec<Box<dyn Scorer>>) -> SpecializedScorer<TScoreCombiner>
+fn scorer_union<TScoreCombiner>(
+    scorers: Vec<Rc<RefCell<dyn Scorer>>>,
+) -> SpecializedScorer<TScoreCombiner>
 where
     TScoreCombiner: ScoreCombiner,
 {
@@ -29,24 +36,35 @@ where
     }
 
     {
-        let is_all_term_queries = scorers.iter().all(|scorer| scorer.is::<TermScorer>());
+        let is_all_term_queries = scorers
+            .iter()
+            .all(|scorer| scorer.as_ref().borrow().is::<TermScorer>());
         if is_all_term_queries {
             let scorers: Vec<TermScorer> = scorers
                 .into_iter()
-                .map(|scorer| *(scorer.downcast::<TermScorer>().map_err(|_| ()).unwrap()))
+                .map(|scorer| {
+                    *((*scorer.as_ref().borrow().deref())
+                        .downcast::<TermScorer>()
+                        .map_err(|_| ())
+                        .unwrap())
+                })
                 .collect();
             return SpecializedScorer::TermUnion(Union::<TermScorer, TScoreCombiner>::from(
                 scorers,
             ));
         }
     }
-    SpecializedScorer::Other(Box::new(Union::<_, TScoreCombiner>::from(scorers)))
+    SpecializedScorer::Other(Rc::new(RefCell::new(Union::<_, TScoreCombiner>::from(
+        scorers,
+    ))))
 }
 
-impl<TScoreCombiner: ScoreCombiner> Into<Box<dyn Scorer>> for SpecializedScorer<TScoreCombiner> {
-    fn into(self) -> Box<dyn Scorer> {
+impl<TScoreCombiner: ScoreCombiner> Into<Rc<RefCell<dyn Scorer>>>
+    for SpecializedScorer<TScoreCombiner>
+{
+    fn into(self) -> Rc<RefCell<dyn Scorer>> {
         match self {
-            Self::TermUnion(union) => Box::new(union),
+            Self::TermUnion(union) => Rc::new(RefCell::new(union)),
             Self::Other(scorer) => scorer,
         }
     }
@@ -69,10 +87,10 @@ impl BooleanWeight {
         &self,
         reader: &SegmentReader,
         boost: f32,
-    ) -> crate::Result<HashMap<Occur, Vec<Box<dyn Scorer>>>> {
-        let mut per_occur_scorers: HashMap<Occur, Vec<Box<dyn Scorer>>> = HashMap::new();
+    ) -> crate::Result<HashMap<Occur, Vec<Rc<RefCell<dyn Scorer>>>>> {
+        let mut per_occur_scorers: HashMap<Occur, Vec<Rc<RefCell<dyn Scorer>>>> = HashMap::new();
         for &(ref occur, ref subweight) in &self.weights {
-            let sub_scorer: Box<dyn Scorer> = subweight.scorer(reader, boost)?;
+            let sub_scorer: Rc<RefCell<dyn Scorer>> = subweight.scorer(reader, boost)?;
             per_occur_scorers
                 .entry(*occur)
                 .or_insert_with(Vec::new)
@@ -92,12 +110,12 @@ impl BooleanWeight {
             .remove(&Occur::Should)
             .map(scorer_union::<TScoreCombiner>);
 
-        let exclude_scorer_opt: Option<Box<dyn Scorer>> = per_occur_scorers
+        let exclude_scorer_opt: Option<Rc<RefCell<dyn Scorer>>> = per_occur_scorers
             .remove(&Occur::MustNot)
             .map(scorer_union::<TScoreCombiner>)
             .map(Into::into);
 
-        let must_scorer_opt: Option<Box<dyn Scorer>> = per_occur_scorers
+        let must_scorer_opt: Option<Rc<RefCell<dyn Scorer>>> = per_occur_scorers
             .remove(&Occur::Must)
             .map(intersect_scorers);
 
@@ -105,13 +123,14 @@ impl BooleanWeight {
             match (should_scorer_opt, must_scorer_opt) {
                 (Some(should_scorer), Some(must_scorer)) => {
                     if self.scoring_enabled {
-                        SpecializedScorer::Other(Box::new(RequiredOptionalScorer::<
-                            Box<dyn Scorer>,
-                            Box<dyn Scorer>,
+                        SpecializedScorer::Other(Rc::new(RefCell::new(RequiredOptionalScorer::<
+                            Rc<RefCell<dyn Scorer>>,
+                            Rc<RefCell<dyn Scorer>>,
                             TScoreCombiner,
                         >::new(
-                            must_scorer, should_scorer.into()
-                        )))
+                            must_scorer,
+                            should_scorer.into(),
+                        ))))
                     } else {
                         SpecializedScorer::Other(must_scorer)
                     }
@@ -119,15 +138,14 @@ impl BooleanWeight {
                 (None, Some(must_scorer)) => SpecializedScorer::Other(must_scorer),
                 (Some(should_scorer), None) => should_scorer,
                 (None, None) => {
-                    return Ok(SpecializedScorer::Other(Box::new(EmptyScorer)));
+                    return Ok(SpecializedScorer::Other(Rc::new(RefCell::new(EmptyScorer))));
                 }
             };
 
         if let Some(exclude_scorer) = exclude_scorer_opt {
-            let positive_scorer_boxed: Box<dyn Scorer> = positive_scorer.into();
-            Ok(SpecializedScorer::Other(Box::new(Exclude::new(
-                positive_scorer_boxed,
-                exclude_scorer,
+            let positive_scorer_rcrfc: Rc<RefCell<dyn Scorer>> = positive_scorer.into();
+            Ok(SpecializedScorer::Other(Rc::new(RefCell::new(
+                Exclude::new(positive_scorer_rcrfc, exclude_scorer),
             ))))
         } else {
             Ok(positive_scorer)
@@ -136,13 +154,13 @@ impl BooleanWeight {
 }
 
 impl Weight for BooleanWeight {
-    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<Box<dyn Scorer>> {
+    fn scorer(&self, reader: &SegmentReader, boost: f32) -> crate::Result<Rc<RefCell<dyn Scorer>>> {
         if self.weights.is_empty() {
-            Ok(Box::new(EmptyScorer))
+            Ok(Rc::new(RefCell::new(EmptyScorer)))
         } else if self.weights.len() == 1 {
             let &(occur, ref weight) = &self.weights[0];
             if occur == Occur::MustNot {
-                Ok(Box::new(EmptyScorer))
+                Ok(Rc::new(RefCell::new(EmptyScorer)))
             } else {
                 weight.scorer(reader, boost)
             }
@@ -186,7 +204,7 @@ impl Weight for BooleanWeight {
                 for_each_scorer(&mut union_scorer, callback);
             }
             SpecializedScorer::Other(mut scorer) => {
-                for_each_scorer(scorer.as_mut(), callback);
+                for_each_scorer(scorer.as_ref().borrow_mut().deref_mut(), callback);
             }
         }
         Ok(())
@@ -214,7 +232,11 @@ impl Weight for BooleanWeight {
                 for_each_pruning_scorer(&mut union_scorer, threshold, callback);
             }
             SpecializedScorer::Other(mut scorer) => {
-                for_each_pruning_scorer(scorer.as_mut(), threshold, callback);
+                for_each_pruning_scorer(
+                    scorer.as_ref().borrow_mut().deref_mut(),
+                    threshold,
+                    callback,
+                );
             }
         }
         Ok(())
