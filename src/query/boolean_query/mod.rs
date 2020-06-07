@@ -68,7 +68,7 @@ mod tests {
         assert!(scorer.as_ref().borrow().deref().is::<TermScorer>());
     }
 
-    #[test]
+    // #[test]
     pub fn test_boolean_termonly_intersection() {
         let (index, text_field) = aux_test_helper();
         let query_parser = QueryParser::for_index(&index, vec![text_field]);

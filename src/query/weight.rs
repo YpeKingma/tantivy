@@ -77,7 +77,7 @@ pub trait Weight: Send + Sync + 'static {
         reader: &SegmentReader,
         callback: &mut dyn FnMut(DocId, Score),
     ) -> crate::Result<()> {
-        let mut scorer = self.scorer(reader, 1.0f32)?;
+        let scorer = self.scorer(reader, 1.0f32)?;
         for_each_scorer(scorer.as_ref().borrow_mut().deref_mut(), callback);
         Ok(())
     }
@@ -98,7 +98,7 @@ pub trait Weight: Send + Sync + 'static {
         reader: &SegmentReader,
         callback: &mut dyn FnMut(DocId, Score) -> Score,
     ) -> crate::Result<()> {
-        let mut scorer = self.scorer(reader, 1.0f32)?;
+        let scorer = self.scorer(reader, 1.0f32)?;
         for_each_pruning_scorer(
             scorer.as_ref().borrow_mut().deref_mut(),
             threshold,

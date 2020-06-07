@@ -49,7 +49,7 @@ impl DocSet for Rc<RefCell<dyn Scorer>> {
     }
 
     fn count(&mut self, delete_bitset: &DeleteBitSet) -> u32 {
-        self.as_ref().borrow().count(delete_bitset)
+        self.as_ref().borrow_mut().count(delete_bitset)
     }
 }
 

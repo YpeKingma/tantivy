@@ -2,7 +2,7 @@ use crate::core::SegmentReader;
 use crate::docset::DocSet;
 use crate::query::explanation::does_not_match;
 use crate::query::score_combiner::{DoNothingCombiner, ScoreCombiner, SumWithCoordsCombiner};
-use crate::query::term_query::TermScorer;
+//use crate::query::term_query::TermScorer;
 use crate::query::weight::{for_each_pruning_scorer, for_each_scorer};
 use crate::query::EmptyScorer;
 use crate::query::Exclude;
@@ -19,14 +19,16 @@ use std::collections::HashMap;
 use std::ops::DerefMut;
 use std::rc::Rc;
 
-enum SpecializedScorer<TScoreCombiner: ScoreCombiner> {
-    TermUnion(Union<TermScorer, TScoreCombiner>),
+//enum SpecializedScorer<TScoreCombiner: ScoreCombiner> {
+enum SpecializedScorer {
+    //TermUnion(Union<TermScorer, TScoreCombiner>),
     Other(Rc<RefCell<dyn Scorer>>),
 }
 
 fn scorer_union<TScoreCombiner>(
     scorers: Vec<Rc<RefCell<dyn Scorer>>>,
-) -> SpecializedScorer<TScoreCombiner>
+    // ) -> SpecializedScorer<TScoreCombiner>
+) -> SpecializedScorer
 where
     TScoreCombiner: ScoreCombiner,
 {
@@ -60,12 +62,12 @@ where
     ))))
 }
 
-impl<TScoreCombiner: ScoreCombiner> Into<Rc<RefCell<dyn Scorer>>>
-    for SpecializedScorer<TScoreCombiner>
-{
+//impl<TScoreCombiner: ScoreCombiner> Into<Rc<RefCell<dyn Scorer>>>
+//    for SpecializedScorer<TScoreCombiner>
+impl Into<Rc<RefCell<dyn Scorer>>> for SpecializedScorer {
     fn into(self) -> Rc<RefCell<dyn Scorer>> {
         match self {
-            Self::TermUnion(union) => Rc::new(RefCell::new(union)),
+            //            Self::TermUnion(union) => Rc::new(RefCell::new(union)),
             Self::Other(scorer) => scorer,
         }
     }
@@ -104,10 +106,12 @@ impl BooleanWeight {
         &self,
         reader: &SegmentReader,
         boost: f32,
-    ) -> crate::Result<SpecializedScorer<TScoreCombiner>> {
+        //    ) -> crate::Result<SpecializedScorer<TScoreCombiner>> {
+    ) -> crate::Result<SpecializedScorer> {
         let mut per_occur_scorers = self.per_occur_scorers(reader, boost)?;
 
-        let should_scorer_opt: Option<SpecializedScorer<TScoreCombiner>> = per_occur_scorers
+        //        let should_scorer_opt: Option<SpecializedScorer<TScoreCombiner>> = per_occur_scorers
+        let should_scorer_opt: Option<SpecializedScorer> = per_occur_scorers
             .remove(&Occur::Should)
             .map(scorer_union::<TScoreCombiner>);
 
@@ -120,28 +124,28 @@ impl BooleanWeight {
             .remove(&Occur::Must)
             .map(intersect_scorers);
 
-        let positive_scorer: SpecializedScorer<TScoreCombiner> =
-            match (should_scorer_opt, must_scorer_opt) {
-                (Some(should_scorer), Some(must_scorer)) => {
-                    if self.scoring_enabled {
-                        SpecializedScorer::Other(Rc::new(RefCell::new(RequiredOptionalScorer::<
-                            Rc<RefCell<dyn Scorer>>,
-                            Rc<RefCell<dyn Scorer>>,
-                            TScoreCombiner,
-                        >::new(
-                            must_scorer,
-                            should_scorer.into(),
-                        ))))
-                    } else {
-                        SpecializedScorer::Other(must_scorer)
-                    }
+        //        let positive_scorer: SpecializedScorer<TScoreCombiner> =
+        let positive_scorer: SpecializedScorer = match (should_scorer_opt, must_scorer_opt) {
+            (Some(should_scorer), Some(must_scorer)) => {
+                if self.scoring_enabled {
+                    SpecializedScorer::Other(Rc::new(RefCell::new(RequiredOptionalScorer::<
+                        Rc<RefCell<dyn Scorer>>,
+                        Rc<RefCell<dyn Scorer>>,
+                        TScoreCombiner,
+                    >::new(
+                        must_scorer,
+                        should_scorer.into(),
+                    ))))
+                } else {
+                    SpecializedScorer::Other(must_scorer)
                 }
-                (None, Some(must_scorer)) => SpecializedScorer::Other(must_scorer),
-                (Some(should_scorer), None) => should_scorer,
-                (None, None) => {
-                    return Ok(SpecializedScorer::Other(Rc::new(RefCell::new(EmptyScorer))));
-                }
-            };
+            }
+            (None, Some(must_scorer)) => SpecializedScorer::Other(must_scorer),
+            (Some(should_scorer), None) => should_scorer,
+            (None, None) => {
+                return Ok(SpecializedScorer::Other(Rc::new(RefCell::new(EmptyScorer))));
+            }
+        };
 
         if let Some(exclude_scorer) = exclude_scorer_opt {
             let positive_scorer_rcrfc: Rc<RefCell<dyn Scorer>> = positive_scorer.into();
@@ -201,10 +205,10 @@ impl Weight for BooleanWeight {
     ) -> crate::Result<()> {
         let scorer = self.complex_scorer::<SumWithCoordsCombiner>(reader, 1.0f32)?;
         match scorer {
-            SpecializedScorer::TermUnion(mut union_scorer) => {
-                for_each_scorer(&mut union_scorer, callback);
-            }
-            SpecializedScorer::Other(mut scorer) => {
+            //            SpecializedScorer::TermUnion(mut union_scorer) => {
+            //                for_each_scorer(&mut union_scorer, callback);
+            //            }
+            SpecializedScorer::Other(scorer) => {
                 for_each_scorer(scorer.as_ref().borrow_mut().deref_mut(), callback);
             }
         }
@@ -229,10 +233,10 @@ impl Weight for BooleanWeight {
     ) -> crate::Result<()> {
         let scorer = self.complex_scorer::<SumWithCoordsCombiner>(reader, 1.0f32)?;
         match scorer {
-            SpecializedScorer::TermUnion(mut union_scorer) => {
-                for_each_pruning_scorer(&mut union_scorer, threshold, callback);
-            }
-            SpecializedScorer::Other(mut scorer) => {
+            //            SpecializedScorer::TermUnion(mut union_scorer) => {
+            //                for_each_pruning_scorer(&mut union_scorer, threshold, callback);
+            //            }
+            SpecializedScorer::Other(scorer) => {
                 for_each_pruning_scorer(
                     scorer.as_ref().borrow_mut().deref_mut(),
                     threshold,
