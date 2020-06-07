@@ -43,9 +43,9 @@ where
             let scorers: Vec<TermScorer> = scorers
                 .into_iter()
                 .map(|scorer| {
-                    *((*scorer.as_ref().borrow().deref())
+                    (*scorer.as_ref().borrow().deref())
                         .downcast_ref::<TermScorer>()
-                        .unwrap())
+                        .unwrap()
                 })
                 .collect();
             return SpecializedScorer::TermUnion(Union::<TermScorer, TScoreCombiner>::from(
