@@ -117,7 +117,7 @@ impl BooleanWeight {
 
         let exclude_scorer_opt: Option<Rc<RefCell<dyn Scorer>>> = per_occur_scorers
             .remove(&Occur::MustNot)
-            .map(scorer_union::<TScoreCombiner>)
+            .map(scorer_union::<DoNothingCombiner>)
             .map(Into::into);
 
         let must_scorer_opt: Option<Rc<RefCell<dyn Scorer>>> = per_occur_scorers
